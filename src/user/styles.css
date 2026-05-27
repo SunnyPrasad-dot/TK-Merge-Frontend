@@ -1,0 +1,1873 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'tailwindcss';
+
+@theme inline {
+  --color-background: var(--background, var(--bg-color));
+  --color-foreground: var(--foreground, var(--text-main));
+  --color-card: var(--card, #ffffff);
+  --color-card-foreground: var(--card-foreground, var(--text-main));
+  --color-popover: var(--popover, #ffffff);
+  --color-popover-foreground: var(--popover-foreground, var(--text-main));
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground, #ffffff);
+  --color-secondary: var(--secondary, #f4f1eb);
+  --color-secondary-foreground: var(--secondary-foreground, var(--primary));
+  --color-muted: var(--muted, #f3f3f3);
+  --color-muted-foreground: var(--muted-foreground, var(--text-muted));
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground, var(--primary));
+  --color-destructive: var(--destructive, #dc2626);
+  --color-destructive-foreground: var(--destructive-foreground, #ffffff);
+  --color-border: var(--border, #e5ded2);
+  --color-input: var(--input, #ded6c9);
+  --color-ring: var(--ring, var(--accent));
+  --radius-sm: calc(var(--radius, 0.75rem) - 4px);
+  --radius-md: calc(var(--radius, 0.75rem) - 2px);
+  --radius-lg: var(--radius, 0.75rem);
+  --radius-xl: calc(var(--radius, 0.75rem) + 4px);
+}
+
+.package-builder-theme {
+  --background: oklch(0.98 0.005 75);
+  --foreground: oklch(0.2 0.02 30);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 30);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 30);
+  --primary: oklch(0.55 0.15 25);
+  --primary-foreground: oklch(0.98 0.005 75);
+  --secondary: oklch(0.95 0.01 75);
+  --secondary-foreground: oklch(0.3 0.02 30);
+  --muted: oklch(0.95 0.01 75);
+  --muted-foreground: oklch(0.5 0.02 30);
+  --accent: oklch(0.92 0.03 75);
+  --accent-foreground: oklch(0.2 0.02 30);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: oklch(0.9 0.02 75);
+  --input: oklch(0.9 0.02 75);
+  --ring: oklch(0.55 0.15 25);
+  --radius: 0.75rem;
+  color: var(--foreground);
+  overflow-x: hidden;
+  line-height: 1.5;
+}
+
+.package-builder-theme * {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+.package-builder-theme > *,
+.package-builder-theme section,
+.package-builder-theme [data-slot='card'],
+.package-builder-theme button,
+.package-builder-theme input {
+  max-width: 100%;
+}
+
+.package-builder-theme .min-w-0 {
+  min-width: 0;
+}
+
+.package-builder-theme h1,
+.package-builder-theme h2,
+.package-builder-theme h3,
+.package-builder-theme h4,
+.package-builder-theme h5,
+.package-builder-theme h6 {
+  color: inherit;
+  font-family: inherit;
+  margin: 0;
+}
+
+.package-builder-theme p {
+  margin: 0;
+}
+
+.package-builder-container {
+  width: min(100%, 80rem);
+  margin-inline: auto;
+  padding-inline: clamp(1rem, 4vw, 2rem);
+}
+
+@media (max-width: 640px) {
+  .package-builder-theme {
+    min-height: auto;
+  }
+
+  .package-builder-container {
+    padding-inline: 1rem;
+  }
+
+  .package-builder-theme [data-slot='card'] {
+    border-radius: 0.75rem;
+  }
+
+  .package-builder-theme [data-slot='dialog-content'] {
+    left: 1rem;
+    right: 1rem;
+    top: 1rem;
+    width: auto;
+    max-height: calc(100dvh - 2rem);
+    transform: none;
+  }
+}
+
+
+:root {
+  --primary: #1a1a1a;
+  --bg-color: #fcfcfc;
+  --text-main: #333333;
+  --text-muted: #666666;
+  --accent: #d2a45a; /* A soft gold */
+  
+  --font-heading: 'Cormorant Garamond', serif;
+  --font-body: 'Montserrat', sans-serif;
+  
+  --spacing-section: 6rem;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  line-height: 1.6;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Typography utilities */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+  font-weight: 400;
+  color: var(--primary);
+  margin-bottom: 1rem;
+}
+
+.heading-lg {
+  font-size: clamp(2.5rem, 5vw, 4.5rem);
+  line-height: 1.1;
+}
+
+.heading-md {
+  font-size: clamp(2rem, 3.5vw, 3rem);
+}
+
+.text-gold {
+  color: var(--accent);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+ul {
+  list-style: none;
+}
+
+/* Global button styles */
+.btn {
+  display: inline-block;
+  padding: 0.8rem 2.5rem;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.4s ease;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--primary);
+  min-width: 160px;
+  text-align: center;
+}
+
+.btn-solid {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-solid:hover {
+  background: #b58c49;
+  border-color: #b58c49;
+}
+
+.btn-outline {
+  color: var(--accent);
+}
+
+.btn-outline:hover {
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-light {
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #fff;
+}
+
+.btn-light:hover {
+  background: #fff;
+  color: var(--primary);
+}
+
+/* Container */
+.container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 5%;
+}
+
+/* Header Component */
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 78px;
+  padding: 1.25rem clamp(1rem, 5vw, 5rem);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  z-index: 100;
+  transition: all 0.4s ease;
+}
+
+.header.scrolled {
+  background: rgba(252, 252, 252, 0.95);
+  backdrop-filter: blur(10px);
+  min-height: 66px;
+  padding-block: 0.85rem;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+}
+
+.header .logo {
+  font-family: var(--font-heading);
+  font-size: 1.8rem;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #fff;
+  transition: color 0.4s ease;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.header.scrolled .logo,
+.header.always-dark .logo {
+  color: var(--primary);
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 2.8vw, 2.5rem);
+  min-width: 0;
+}
+
+.nav-links a {
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.9);
+  position: relative;
+  white-space: nowrap;
+}
+
+.header.scrolled .nav-links a,
+.header.always-dark .nav-links a {
+  color: var(--primary);
+}
+
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0%;
+  height: 1px;
+  background-color: var(--accent);
+  transition: width 0.3s ease;
+}
+
+.nav-links a:hover::after {
+  width: 100%;
+}
+
+/* Hamburger for mobile */
+.menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: #fff;
+  width: 30px;
+  height: 24px;
+  cursor: pointer;
+  position: relative;
+  flex: 0 0 auto;
+  z-index: 101;
+}
+
+.menu-btn span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  margin-bottom: 6px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.menu-btn span:last-child {
+  margin-bottom: 0;
+}
+
+.header.scrolled .menu-btn,
+.header.always-dark .menu-btn {
+  color: var(--primary);
+}
+
+.menu-btn.open span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.menu-btn.open span:nth-child(2) {
+  opacity: 0;
+}
+
+.menu-btn.open span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* Hero Section */
+.hero {
+  position: relative;
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.hero-video {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: -2;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6));
+  z-index: -1;
+}
+
+.hero-content {
+  text-align: center;
+  color: #ffffff;
+  max-width: 800px;
+  padding: 0 20px;
+  animation: fadeIn 1.5s ease;
+}
+
+.hero-subtitle {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 4px;
+  margin-bottom: 1.5rem;
+  display: block;
+  font-weight: 500;
+}
+
+.hero-title {
+  color: #ffffff;
+  margin-bottom: 2rem;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* About Section */
+.about-section {
+  padding: var(--spacing-section) 0;
+  text-align: center;
+}
+
+.about-text {
+  max-width: 800px;
+  margin: 0 auto 3rem;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+}
+
+.about-quote {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-style: italic;
+  color: var(--primary);
+  margin-bottom: 2rem;
+}
+
+/* Stories / Grid Section */
+.stories-section {
+  padding: 4rem 0 var(--spacing-section);
+  background-color: #f7f6f4;
+}
+
+.wedding-stories-page {
+  min-height: 100vh;
+  background: #f4f1eb;
+  color: #2b241c;
+  padding: clamp(5rem, 9vw, 7rem) clamp(1rem, 5vw, 4.75rem) clamp(3rem, 7vw, 5.5rem);
+}
+
+.wedding-stories-row + .wedding-stories-row {
+  margin-top: clamp(4rem, 8vw, 6.5rem);
+}
+
+.wedding-stories-heading {
+  position: relative;
+  margin-bottom: clamp(2rem, 5vw, 6rem);
+  text-align: center;
+}
+
+.wedding-stories-heading h2 {
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  line-height: 1.05;
+  color: #655b4e;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.wedding-stories-heading h2 span {
+  position: relative;
+  display: inline-block;
+  font-style: italic;
+}
+
+.wedding-stories-heading h2 span::after {
+  content: "";
+  position: absolute;
+  left: -0.08em;
+  right: -0.12em;
+  bottom: 0.03em;
+  height: 1px;
+  background: currentColor;
+  transform: rotate(-5deg);
+  transform-origin: left center;
+}
+
+.wedding-stories-controls {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  display: flex;
+  gap: 0.75rem;
+  transform: translateY(-50%);
+}
+
+.wedding-stories-controls button {
+  display: inline-grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  color: #403930;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.wedding-stories-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1.5rem, 2.4vw, 2.75rem);
+  max-width: 1748px;
+  margin: 0 auto;
+}
+
+.wedding-story-card {
+  min-width: 0;
+  width: 100%;
+}
+
+.wedding-story-image-link {
+  display: block;
+  overflow: hidden;
+  background: #e7e0d5;
+}
+
+.wedding-story-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.5 / 1;
+  object-fit: cover;
+  transition: transform 0.7s ease;
+}
+
+.wedding-story-card:hover .wedding-story-image {
+  transform: scale(1.035);
+}
+
+.wedding-story-copy {
+  padding-top: clamp(0.9rem, 1.6vw, 1.25rem);
+}
+
+.wedding-story-copy h3 {
+  max-width: 38rem;
+  color: #2c251d;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(1.35rem, 1.9vw, 1.85rem);
+  font-weight: 500;
+  line-height: 1.08;
+  margin: 0 0 0.7rem;
+  overflow-wrap: anywhere;
+}
+
+.wedding-story-copy p {
+  max-width: 38rem;
+  color: #332c23;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(1rem, 1.35vw, 1.32rem);
+  line-height: 1.3;
+  margin: 0 0 1rem;
+  overflow-wrap: anywhere;
+}
+
+.wedding-story-read-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #2f271f;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(1.05rem, 1.12vw, 1.25rem);
+  line-height: 1;
+}
+
+.wedding-story-read-more span {
+  transition: transform 0.25s ease;
+}
+
+.wedding-story-read-more:hover span {
+  transform: translateX(0.2rem);
+}
+
+.wedding-films-page {
+  min-height: 100vh;
+  background: #f4f1eb;
+  color: #2b241c;
+  padding: clamp(5rem, 8vw, 7rem) clamp(1rem, 6vw, 8rem) clamp(3rem, 6vw, 5rem);
+}
+
+.about-page {
+  min-height: 100vh;
+  background: #f4f1eb;
+  color: #2b241c;
+  padding: clamp(5rem, 8vw, 7rem) clamp(1rem, 5vw, 5rem) clamp(3rem, 7vw, 5rem);
+  overflow: hidden;
+  position: relative;
+}
+
+.about-page::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(110deg, rgba(210, 164, 90, 0.14), transparent 34%),
+    radial-gradient(circle at 88% 12%, rgba(43, 36, 28, 0.08), transparent 28%);
+}
+
+.about-page-bg-word {
+  position: absolute;
+  top: 4.5rem;
+  right: -0.12em;
+  color: rgba(43, 36, 28, 0.045);
+  font-family: var(--font-heading);
+  font-size: clamp(5rem, 17vw, 17rem);
+  line-height: 0.8;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.about-page-hero {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.92fr) minmax(20rem, 1.08fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 5rem);
+  max-width: 1350px;
+  margin: 0 auto;
+}
+
+.about-page-kicker {
+  display: inline-block;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.about-page-copy h1 {
+  color: #2b241c;
+  font-size: clamp(2.4rem, 5vw, 5rem);
+  line-height: 0.98;
+  max-width: 13ch;
+  margin: 0 0 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+.about-page-copy p {
+  color: #5f564b;
+  font-size: clamp(1rem, 1.15vw, 1.08rem);
+  line-height: 1.8;
+  max-width: 42rem;
+  margin: 0 0 1rem;
+}
+
+.about-page-copy .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1.25rem;
+  box-shadow: 0 14px 34px rgba(210, 164, 90, 0.2);
+}
+
+.about-page-highlights {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  width: min(100%, 36rem);
+  margin-top: clamp(1.75rem, 3vw, 2.5rem);
+  background: rgba(43, 36, 28, 0.16);
+}
+
+.about-page-highlights div {
+  min-width: 0;
+  background: rgba(244, 241, 235, 0.82);
+  padding: 1rem;
+}
+
+.about-page-highlights strong,
+.about-page-highlights span {
+  display: block;
+}
+
+.about-page-highlights strong {
+  color: var(--accent);
+  font-family: var(--font-heading);
+  font-size: clamp(1.55rem, 2.4vw, 2.25rem);
+  line-height: 1;
+}
+
+.about-page-highlights span {
+  color: #675d51;
+  font-size: 0.73rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  margin-top: 0.45rem;
+  text-transform: uppercase;
+}
+
+.about-page-image-stack {
+  position: relative;
+  min-height: clamp(30rem, 48vw, 44rem);
+}
+
+.about-page-image {
+  display: block;
+  width: 100%;
+  object-fit: cover;
+  background: #e5ded2;
+  box-shadow: 0 22px 60px rgba(43, 36, 28, 0.16);
+}
+
+.about-page-image-large {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 78%;
+  height: 82%;
+  object-position: center;
+  outline: 1px solid rgba(255, 255, 255, 0.65);
+  outline-offset: -0.9rem;
+}
+
+.about-page-image-small {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 46%;
+  height: 43%;
+  border: 0.75rem solid #f4f1eb;
+  object-position: center;
+  transform: rotate(-2deg);
+}
+
+.about-page-location {
+  position: absolute;
+  right: clamp(1rem, 3vw, 2rem);
+  bottom: clamp(1rem, 3vw, 2rem);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(244, 241, 235, 0.92);
+  color: #2b241c;
+  padding: 0.8rem 1rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  max-width: min(21rem, calc(100% - 2rem));
+  box-shadow: 0 12px 30px rgba(43, 36, 28, 0.12);
+}
+
+.about-page-frame-note {
+  position: absolute;
+  top: clamp(1rem, 3vw, 2rem);
+  left: clamp(0.5rem, 2vw, 1.25rem);
+  width: min(13rem, 38%);
+  color: #f8f2e8;
+  background: rgba(43, 36, 28, 0.76);
+  padding: 1rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+  backdrop-filter: blur(8px);
+}
+
+.about-page-frame-note span {
+  display: block;
+  color: var(--accent);
+  font-family: var(--font-heading);
+  font-size: 1.7rem;
+  line-height: 1;
+  margin-bottom: 0.55rem;
+}
+
+.about-page-values {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  max-width: 1350px;
+  margin: clamp(3.5rem, 7vw, 6rem) auto;
+  background: rgba(43, 36, 28, 0.14);
+}
+
+.about-value {
+  position: relative;
+  min-width: 0;
+  background: rgba(244, 241, 235, 0.86);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  transition: transform 0.35s ease, background 0.35s ease, box-shadow 0.35s ease;
+}
+
+.about-value:hover {
+  transform: translateY(-0.35rem);
+  background: #fbf7ef;
+  box-shadow: 0 18px 40px rgba(43, 36, 28, 0.08);
+}
+
+.about-value svg {
+  color: var(--accent);
+  margin-bottom: 1.25rem;
+}
+
+.about-value h2 {
+  color: #2b241c;
+  font-size: clamp(1.45rem, 2vw, 2rem);
+  margin: 0 0 0.8rem;
+}
+
+.about-value p {
+  color: #62584c;
+  font-size: 0.98rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.about-page-story {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
+  max-width: 1150px;
+  margin: 0 auto;
+  padding-top: clamp(2rem, 5vw, 4rem);
+  border-top: 1px solid rgba(43, 36, 28, 0.14);
+}
+
+.about-page-story h2 {
+  color: #2b241c;
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  line-height: 1.04;
+  margin: 0;
+}
+
+.about-page-story-copy p {
+  color: #5f564b;
+  font-size: 1.03rem;
+  line-height: 1.8;
+  margin: 0 0 1.5rem;
+}
+
+.about-page-story-copy ul {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.about-page-story-copy li {
+  position: relative;
+  color: #332c23;
+  padding-left: 1.35rem;
+  font-size: 0.94rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.about-page-story-copy li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.7em;
+  width: 0.5rem;
+  height: 1px;
+  background: var(--accent);
+}
+
+.about-page-testimonials {
+  position: relative;
+  z-index: 1;
+  max-width: 1350px;
+  margin: clamp(3.5rem, 7vw, 6rem) auto 0;
+  padding-top: clamp(2.5rem, 5vw, 4rem);
+  border-top: 1px solid rgba(43, 36, 28, 0.14);
+}
+
+.about-testimonials-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.about-testimonials-heading h2 {
+  color: #2b241c;
+  font-size: clamp(2rem, 3.4vw, 3.25rem);
+  line-height: 1.05;
+  max-width: 13ch;
+  margin: 0;
+  text-align: right;
+}
+
+.about-testimonials-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(1rem, 2vw, 1.4rem);
+}
+
+.about-testimonial {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 21rem;
+  flex-direction: column;
+  justify-content: space-between;
+  background:
+    linear-gradient(145deg, rgba(255, 252, 246, 0.96), rgba(241, 234, 223, 0.96)),
+    url("https://images.unsplash.com/photo-1469371670807-013ccf25f16a?auto=format&fit=crop&q=60&w=900");
+  background-position: center;
+  background-size: cover;
+  border: 1px solid rgba(43, 36, 28, 0.1);
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+  overflow: hidden;
+  box-shadow: 0 18px 48px rgba(43, 36, 28, 0.08);
+  transition: transform 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+}
+
+.about-testimonial:hover {
+  transform: translateY(-0.45rem);
+  border-color: rgba(210, 164, 90, 0.42);
+  box-shadow: 0 28px 70px rgba(43, 36, 28, 0.14);
+}
+
+.about-testimonial::after {
+  content: "";
+  position: absolute;
+  left: clamp(1.5rem, 3vw, 2.5rem);
+  right: clamp(1.5rem, 3vw, 2.5rem);
+  bottom: 0;
+  height: 3px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.35s ease;
+}
+
+.about-testimonial:hover::after {
+  transform: scaleX(1);
+}
+
+.about-testimonial-mark {
+  position: absolute;
+  top: -1rem;
+  right: 1.2rem;
+  color: rgba(210, 164, 90, 0.2);
+  font-family: Georgia, serif;
+  font-size: 8rem;
+  line-height: 1;
+}
+
+.about-testimonial-rating {
+  position: relative;
+  z-index: 1;
+  width: max-content;
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(210, 164, 90, 0.26);
+  padding: 0.38rem 0.62rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.22em;
+  margin-bottom: 1.35rem;
+}
+
+.about-testimonial p {
+  position: relative;
+  z-index: 1;
+  color: #3a3128;
+  font-family: var(--font-heading);
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+  line-height: 1.2;
+  margin: 0 0 2rem;
+  overflow-wrap: anywhere;
+}
+
+.about-testimonial-person {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding-top: 1.15rem;
+  border-top: 1px solid rgba(43, 36, 28, 0.12);
+}
+
+.about-testimonial-person img {
+  width: 3.6rem;
+  height: 3.6rem;
+  flex: 0 0 3.6rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(210, 164, 90, 0.55);
+  box-shadow: 0 8px 18px rgba(43, 36, 28, 0.14);
+}
+
+.about-testimonial strong,
+.about-testimonial span,
+.about-testimonial small {
+  display: block;
+}
+
+.about-testimonial strong {
+  color: #2b241c;
+  font-size: 0.88rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.about-testimonial span {
+  color: #756b5f;
+  font-size: 0.9rem;
+  margin-top: 0.3rem;
+}
+
+.about-testimonial small {
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+}
+
+.wedding-films-heading {
+  margin-bottom: clamp(2.5rem, 5vw, 6rem);
+  text-align: center;
+}
+
+.wedding-films-heading h1 {
+  position: relative;
+  display: inline-block;
+  color: #655b4e;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 1.08;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.wedding-films-heading h1::after {
+  content: "";
+  position: absolute;
+  left: -0.08em;
+  right: -0.12em;
+  bottom: 0.02em;
+  height: 1px;
+  background: currentColor;
+  transform: rotate(-4deg);
+  transform-origin: left center;
+}
+
+.wedding-films-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(2rem, 4vw, 4.5rem);
+  max-width: 1575px;
+  margin: 0 auto;
+}
+
+.wedding-film-card {
+  min-width: 0;
+  width: 100%;
+}
+
+.wedding-film-image-link {
+  display: block;
+  overflow: hidden;
+  background: #e7e0d5;
+}
+
+.wedding-film-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1.33 / 1;
+  object-fit: cover;
+  transition: transform 0.7s ease;
+}
+
+.wedding-film-card:hover .wedding-film-image {
+  transform: scale(1.035);
+}
+
+.wedding-film-copy {
+  padding-top: clamp(0.9rem, 1.5vw, 1.25rem);
+}
+
+.wedding-film-copy h2 {
+  color: #2c251d;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(1.55rem, 2.8vw, 2.45rem);
+  font-weight: 500;
+  line-height: 1.08;
+  margin: 0 0 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.wedding-film-copy p {
+  color: #332c23;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: clamp(1rem, 1.35vw, 1.18rem);
+  line-height: 1.35;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 4rem;
+}
+
+.stories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 2.5rem;
+}
+
+.story-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+  cursor: pointer;
+  background: #fff;
+  transition: transform 0.4s ease, box-shadow 0.4s ease;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+}
+
+.story-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+}
+
+.story-img-container {
+  height: 300px;
+  overflow: hidden;
+}
+
+.story-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.8s ease;
+}
+
+.story-card:hover .story-img {
+  transform: scale(1.08);
+}
+
+.story-content {
+  padding: 2rem 1.5rem;
+  text-align: center;
+}
+
+.story-category {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+  margin-bottom: 0.5rem;
+  display: inline-block;
+}
+
+.story-title {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.story-preview {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Testimonials */
+.testimonials-section {
+  padding: var(--spacing-section) 0;
+  background-color: var(--primary);
+  color: #fff;
+  text-align: center;
+}
+
+.testimonials-section h2 {
+  color: #fff;
+}
+
+.testimonial-slider {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.testimonial-text {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  font-style: italic;
+  margin-bottom: 1.5rem;
+}
+
+.testimonial-author {
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--accent);
+}
+
+/* Footer */
+.footer {
+  padding: 4rem 5%;
+  background-color: #111;
+  color: #888;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 3rem;
+  margin-bottom: 3rem;
+  padding-bottom: 3rem;
+  border-bottom: 1px solid #333;
+}
+
+.footer-logo {
+  font-family: var(--font-heading);
+  font-size: 2rem;
+  color: #fff;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.footer-info {
+  max-width: 300px;
+  font-size: 0.9rem;
+}
+
+.footer-links-group h4 {
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 1.5rem;
+}
+
+.footer-links li {
+  margin-bottom: 0.8rem;
+}
+
+.footer-links a:hover {
+  color: var(--accent);
+}
+
+.footer-bottom {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+}
+
+/* TK Moments about section */
+.tk-about-bg-text {
+  animation: tk-about-marquee 18s linear infinite;
+}
+
+.tk-about-hero {
+  display: flex;
+  align-items: center;
+  gap: 5vw;
+  padding: 48px 48px 40px;
+  max-width: 1300px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+  min-height: 82vh;
+}
+
+.tk-about-image-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 48%;
+  max-width: 580px;
+  transition: opacity 0.9s ease 0.1s, transform 0.9s ease 0.1s;
+}
+
+.tk-about-text {
+  flex: 1;
+  min-width: 0;
+  transition: opacity 0.9s ease 0.35s, transform 0.9s ease 0.35s;
+}
+
+.tk-about-stats {
+  display: flex;
+  justify-content: center;
+  gap: 6vw;
+  padding: 28px 48px;
+  border-top: 0.5px solid rgba(201,125,106,0.2);
+  max-width: 1300px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes tk-about-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-35%);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .stories-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+
+  .wedding-stories-page {
+    padding-inline: clamp(1.25rem, 4vw, 2.5rem);
+  }
+
+  .wedding-stories-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2rem;
+  }
+
+  .wedding-films-grid {
+    gap: 2rem;
+  }
+
+  .about-page-hero {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .about-page-copy h1,
+  .about-page-copy p {
+    max-width: none;
+  }
+
+  .about-page-highlights {
+    width: 100%;
+  }
+
+  .about-page-image-stack {
+    width: min(100%, 46rem);
+    min-height: clamp(28rem, 68vw, 38rem);
+    margin-inline: auto;
+  }
+
+  .wedding-film-copy h2 {
+    font-size: clamp(1.55rem, 3.4vw, 2.1rem);
+  }
+
+  .tk-about-hero {
+    gap: 2rem !important;
+    padding: 56px 2rem 32px !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .header,
+  .header.scrolled {
+    min-height: 64px;
+    padding: 0.9rem 1rem;
+  }
+
+  .header .logo {
+    font-size: clamp(1.25rem, 5vw, 1.65rem);
+    max-width: calc(100vw - 5rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-links {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    width: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: rgba(252, 252, 252, 0.97);
+    backdrop-filter: blur(10px);
+    max-height: 0;
+    overflow: hidden;
+    box-shadow: 0 16px 30px rgba(0,0,0,0.06);
+    transition: max-height 0.35s ease, visibility 0.35s ease;
+    visibility: hidden;
+  }
+
+  .nav-links.open {
+    max-height: calc(100dvh - 64px);
+    visibility: visible;
+    overflow-y: auto;
+  }
+
+  .nav-links a,
+  .header.scrolled .nav-links a,
+  .header.always-dark .nav-links a {
+    color: var(--primary);
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid rgba(0,0,0,0.05);
+    white-space: normal;
+  }
+  
+  .menu-btn {
+    display: block;
+  }
+  
+  .header {
+    padding: 0.9rem 1rem;
+  }
+  
+  .hero-content {
+    padding: 0 1rem;
+  }
+
+  .wedding-stories-page {
+    padding-top: 4.75rem;
+  }
+
+  .wedding-films-page {
+    padding: 4.75rem clamp(1rem, 4vw, 2rem) 3.5rem;
+  }
+
+  .wedding-films-heading {
+    margin-bottom: 2.5rem;
+  }
+
+  .wedding-films-grid {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .about-page {
+    padding: 4.75rem clamp(1rem, 4vw, 2rem) 3.5rem;
+  }
+
+  .about-page-values,
+  .about-page-story,
+  .about-testimonials-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-page-values {
+    background: transparent;
+    gap: 1rem;
+  }
+
+  .about-value {
+    border-top: 1px solid rgba(43, 36, 28, 0.12);
+    padding-inline: 0;
+  }
+
+  .about-testimonials-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .about-testimonials-heading {
+    display: block;
+  }
+
+  .about-testimonials-heading h2 {
+    max-width: none;
+    text-align: left;
+  }
+
+  .wedding-stories-heading {
+    margin-bottom: 2rem;
+    padding-inline: 2.75rem;
+  }
+
+  .wedding-stories-controls {
+    right: 0.25rem;
+  }
+  
+  .testimonial-text {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .container {
+    padding-inline: 1rem;
+  }
+
+  .wedding-stories-page {
+    padding: 4.25rem 1rem 3rem;
+  }
+
+  .wedding-films-page {
+    padding: 4.25rem 1rem 3rem;
+  }
+
+  .about-page {
+    padding: 4.5rem 1rem 3rem;
+  }
+
+  .about-page-hero {
+    gap: 2rem;
+  }
+
+  .about-page-kicker {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+  }
+
+  .about-page-copy h1 {
+    font-size: clamp(2.2rem, 11vw, 3.35rem);
+    line-height: 1.02;
+    margin-bottom: 1.1rem;
+  }
+
+  .about-page-copy p {
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .about-page-copy .btn {
+    width: 100%;
+    min-width: 0;
+    margin-top: 1rem;
+  }
+
+  .about-page-image-stack {
+    width: 100%;
+    min-height: auto;
+    display: grid;
+    gap: 1rem;
+    margin-inline: 0;
+  }
+
+  .about-page-image-large,
+  .about-page-image-small {
+    position: static;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1.05 / 1;
+    border: 0;
+  }
+
+  .about-page-image-small {
+    aspect-ratio: 1.45 / 1;
+  }
+
+  .about-page-location {
+    left: 1rem;
+    right: auto;
+    bottom: 1rem;
+    max-width: calc(100% - 2rem);
+    padding: 0.7rem 0.85rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+  }
+
+  .about-page-bg-word {
+    top: 5rem;
+    right: -2.5rem;
+    font-size: 5rem;
+  }
+
+  .about-page-highlights {
+    grid-template-columns: 1fr;
+  }
+
+  .about-page-highlights div {
+    padding: 0.9rem 1rem;
+  }
+
+  .about-page-frame-note {
+    top: 1rem;
+    left: 1rem;
+    width: min(12rem, calc(100% - 2rem));
+    padding: 0.85rem;
+    font-size: 0.78rem;
+  }
+
+  .about-page-frame-note span {
+    font-size: 1.35rem;
+    margin-bottom: 0.35rem;
+  }
+
+  .about-page-values {
+    margin: 2.5rem auto;
+  }
+
+  .about-value {
+    padding-block: 1.35rem;
+  }
+
+  .about-value h2 {
+    font-size: 1.45rem;
+  }
+
+  .about-page-story {
+    gap: 1.35rem;
+    padding-top: 2rem;
+  }
+
+  .about-page-story h2 {
+    font-size: clamp(1.85rem, 9vw, 2.45rem);
+  }
+
+  .about-page-story-copy p {
+    font-size: 0.98rem;
+    line-height: 1.7;
+  }
+
+  .about-page-story-copy li {
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  .about-page-testimonials {
+    margin-top: 2.75rem;
+    padding-top: 2rem;
+  }
+
+  .about-testimonial {
+    min-height: auto;
+    padding: 1.5rem;
+  }
+
+  .about-testimonial p {
+    font-size: 1.35rem;
+    margin-bottom: 1.35rem;
+  }
+
+  .about-testimonial-mark {
+    right: 0.6rem;
+    font-size: 6rem;
+  }
+
+  .about-testimonials-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .about-testimonial-person img {
+    width: 3.25rem;
+    height: 3.25rem;
+    flex-basis: 3.25rem;
+  }
+
+  .wedding-films-heading {
+    margin-bottom: 1.75rem;
+  }
+
+  .wedding-films-heading h1 {
+    font-size: clamp(1.95rem, 9vw, 2.55rem);
+  }
+
+  .wedding-films-grid {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .wedding-film-image {
+    aspect-ratio: 1.18 / 1;
+  }
+
+  .wedding-film-copy {
+    padding-top: 0.9rem;
+  }
+
+  .wedding-film-copy h2 {
+    font-size: 1.45rem;
+    line-height: 1.1;
+  }
+
+  .wedding-film-copy p {
+    font-size: 1rem;
+    line-height: 1.4;
+  }
+
+  .wedding-stories-row + .wedding-stories-row {
+    margin-top: 3.75rem;
+  }
+
+  .wedding-stories-heading {
+    margin-bottom: 1.75rem;
+    padding-inline: 0;
+  }
+
+  .wedding-stories-heading h2 {
+    font-size: clamp(1.95rem, 9vw, 2.65rem);
+    line-height: 1.08;
+  }
+
+  .wedding-stories-controls {
+    display: none;
+  }
+
+  .wedding-stories-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.25rem;
+    margin-inline: 0;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .wedding-story-card {
+    min-width: 0;
+  }
+
+  .wedding-story-image {
+    aspect-ratio: 1.18 / 1;
+  }
+
+  .wedding-story-copy {
+    padding-top: 0.9rem;
+  }
+
+  .wedding-story-copy h3 {
+    font-size: 1.45rem;
+    line-height: 1.08;
+  }
+
+  .wedding-story-copy p {
+    font-size: 1.05rem;
+    line-height: 1.35;
+  }
+
+  .btn {
+    width: 100%;
+    min-width: 0;
+    padding-inline: 1rem;
+  }
+
+  .tk-about {
+    min-height: auto !important;
+    overflow: hidden !important;
+  }
+
+  .tk-about-bg-text {
+    font-size: 3.5rem !important;
+    padding-top: 0.75rem !important;
+    opacity: 0.9;
+  }
+
+  .tk-about-hero {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 1.75rem !important;
+    min-height: auto !important;
+    padding: 4.5rem 1rem 2rem !important;
+  }
+
+  .tk-about-image-wrap {
+    width: 100% !important;
+    max-width: none !important;
+    transform: translateY(0) !important;
+  }
+
+  .tk-about-image {
+    height: clamp(18rem, 78vw, 26rem) !important;
+  }
+
+  .tk-about-badge {
+    bottom: 0.875rem !important;
+    left: 0.875rem !important;
+    max-width: calc(100% - 1.75rem);
+  }
+
+  .tk-about-text {
+    width: 100% !important;
+    text-align: center;
+  }
+
+  .tk-about-logo {
+    margin-inline: auto;
+    max-width: 16.25rem;
+  }
+
+  .tk-about-text h1 {
+    font-size: 1.75rem !important;
+  }
+
+  .tk-about-text p {
+    max-width: none !important;
+    font-size: 0.95rem !important;
+  }
+
+  .tk-about-actions {
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+    margin-top: 1.5rem !important;
+  }
+
+  .tk-about-primary,
+  .tk-about-secondary {
+    width: 100% !important;
+    padding: 0.875rem 1rem !important;
+  }
+
+  .tk-about-stats {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem !important;
+    padding: 1.5rem 1rem 2rem !important;
+  }
+
+  .tk-about-stat {
+    min-width: 0;
+  }
+
+  .wedding-carousel {
+    padding: 2.5rem 1rem !important;
+    overflow: hidden;
+  }
+
+  .wedding-carousel-header {
+    margin-bottom: 1.5rem !important;
+  }
+
+  .wedding-carousel-title {
+    font-size: clamp(2rem, 10vw, 2.65rem) !important;
+    line-height: 1.1 !important;
+  }
+
+  .wedding-carousel-track {
+    gap: 0.875rem !important;
+    margin-inline: -1rem;
+    overflow-x: auto;
+    padding: 0 1rem 0.5rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .wedding-carousel-card {
+    flex-basis: min(78vw, 20rem) !important;
+    scroll-snap-align: center;
+  }
+
+  .wedding-carousel-actions {
+    display: none !important;
+  }
+
+  .wedding-carousel-nav {
+    top: auto !important;
+    bottom: 1rem !important;
+    transform: none !important;
+    width: 2.25rem !important;
+    height: 2.25rem !important;
+  }
+
+  .wedding-carousel-nav-left {
+    left: 1rem !important;
+  }
+
+  .wedding-carousel-nav-right {
+    right: 1rem !important;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
