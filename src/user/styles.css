@@ -31,34 +31,34 @@
 }
 
 .package-builder-theme {
-  --background: oklch(0.98 0.005 75);
-  --foreground: oklch(0.2 0.02 30);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.2 0.02 30);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.02 30);
-  --primary: oklch(0.55 0.15 25);
-  --primary-foreground: oklch(0.98 0.005 75);
-  --secondary: oklch(0.95 0.01 75);
-  --secondary-foreground: oklch(0.3 0.02 30);
-  --muted: oklch(0.95 0.01 75);
-  --muted-foreground: oklch(0.5 0.02 30);
-  --accent: oklch(0.92 0.03 75);
-  --accent-foreground: oklch(0.2 0.02 30);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.9 0.02 75);
-  --input: oklch(0.9 0.02 75);
-  --ring: oklch(0.55 0.15 25);
+  --background: 40 33% 98%;
+  --foreground: 24 19% 15%;
+  --card: 0 0% 100%;
+  --card-foreground: 24 19% 15%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 24 19% 15%;
+  --primary: 1 48% 51%;
+  --primary-foreground: 40 33% 98%;
+  --secondary: 38 31% 94%;
+  --secondary-foreground: 24 19% 22%;
+  --muted: 38 31% 94%;
+  --muted-foreground: 24 10% 45%;
+  --accent: 30 43% 91%;
+  --accent-foreground: 24 19% 15%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 34 25% 86%;
+  --input: 34 25% 86%;
+  --ring: 1 48% 51%;
   --radius: 0.75rem;
-  color: var(--foreground);
+  color: hsl(var(--foreground));
   overflow-x: hidden;
   line-height: 1.5;
 }
 
 .package-builder-theme * {
   box-sizing: border-box;
-  border-color: var(--border);
+  border-color: hsl(var(--border));
 }
 
 .package-builder-theme > *,
@@ -144,6 +144,12 @@ body {
   line-height: 1.6;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
+}
+
+.hero-brand-script {
+  font-family: "Birthstone", cursive;
+  line-height: 0.9;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.24);
 }
 
 /* Typography utilities */
@@ -1864,6 +1870,15 @@ ul {
 
   .wedding-carousel-nav-right {
     right: 1rem !important;
+  }
+
+  .package-builder-theme [data-radix-popper-content-wrapper] {
+    max-width: calc(100vw - 1rem);
+  }
+
+  .package-builder-theme [data-slot='card'],
+  .package-builder-theme section {
+    scroll-margin-top: 5rem;
   }
 
   .footer-bottom {

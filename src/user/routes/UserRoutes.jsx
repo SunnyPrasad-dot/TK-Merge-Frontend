@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import UserLayout from "@user/layouts/UserLayout";
 import Header from "@user/components/Header";
 import Hero from "@user/components/Hero";
@@ -13,91 +12,97 @@ import Packageposter from "@user/components/packageposter";
 import ContactUs from "@user/components/contact";
 import MinimalFooter from "@user/components/fotter";
 
-const pathToPage = {
-  "/": "home",
-  "/about": "about",
-  "/contact": "contact",
-  "/wedding-stories": "wedding-stories",
-  "/wedding-films": "wedding-films",
+const hashToPage = {
+  "#wedding-stories": "wedding-stories",
+  "#wedding-films": "wedding-films",
+  "#about": "about",
+  "#contact": "contact",
 };
 
-function UserShell({ page = "home" }) {
+const pathToPage = {
+  "/wedding-stories": "wedding-stories",
+  "/wedding-films": "wedding-films",
+  "/about": "about",
+  "/contact": "contact",
+};
+
+function getPageFromLocation() {
+  return hashToPage[window.location.hash] || pathToPage[window.location.pathname] || "home";
+}
+
+export default function UserRoutes() {
   const [showPackageBuilder, setShowPackageBuilder] = useState(false);
-  const navigate = useNavigate();
+  const [currentPage, setCurrentPage] = useState(getPageFromLocation);
 
   useEffect(() => {
-    setShowPackageBuilder(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [page]);
+    const syncPageWithLocation = () => {
+      setCurrentPage(getPageFromLocation());
+    };
+
+    window.addEventListener("hashchange", syncPageWithLocation);
+    window.addEventListener("popstate", syncPageWithLocation);
+    return () => {
+      window.removeEventListener("hashchange", syncPageWithLocation);
+      window.removeEventListener("popstate", syncPageWithLocation);
+    };
+  }, []);
 
   const handleNavigate = (target) => {
     setShowPackageBuilder(false);
 
-    if (target === "wedding-stories") return navigate("/wedding-stories");
-    if (target === "wedding-films") return navigate("/wedding-films");
-    if (target === "about") return navigate("/about");
-    if (target === "contact") return navigate("/contact");
-
-    if (target === "home") {
-      navigate("/");
+    if (
+      target === "wedding-stories" ||
+      target === "wedding-films" ||
+      target === "about" ||
+      target === "contact"
+    ) {
+      setCurrentPage(target);
+      window.history.pushState(null, "", `#${target}`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
-    navigate("/");
+    setCurrentPage("home");
+    window.history.pushState(null, "", `#${target}`);
     window.setTimeout(() => {
       document.getElementById(target)?.scrollIntoView({ behavior: "smooth" });
     }, 0);
   };
 
-  if (showPackageBuilder) {
-    return (
-      <UserLayout>
-        <PackageBuilder onBack={() => setShowPackageBuilder(false)} />
-      </UserLayout>
-    );
-  }
-
   return (
     <UserLayout>
-      <Header
-        alwaysDark={page !== "home"}
-        onNavigate={handleNavigate}
-      />
-      {page === "wedding-stories" ? (
-        <WeddingStories />
-      ) : page === "wedding-films" ? (
-        <WeddingFilms />
-      ) : page === "about" ? (
-        <AboutPage />
-      ) : page === "contact" ? (
-        <ContactUs />
+      {showPackageBuilder ? (
+        <PackageBuilder onBack={() => setShowPackageBuilder(false)} />
       ) : (
         <>
-          <Hero onBuildPackage={() => setShowPackageBuilder(true)} />
-          <TKMoments />
-          <WeddingCarousel />
-          <Packageposter onBuildPackage={() => setShowPackageBuilder(true)} />
+          <Header
+            alwaysDark={
+              currentPage === "wedding-stories" ||
+              currentPage === "wedding-films" ||
+              currentPage === "about" ||
+              currentPage === "contact"
+            }
+            onNavigate={handleNavigate}
+          />
+          {currentPage === "wedding-stories" ? (
+            <WeddingStories />
+          ) : currentPage === "wedding-films" ? (
+            <WeddingFilms />
+          ) : currentPage === "about" ? (
+            <AboutPage />
+          ) : currentPage === "contact" ? (
+            <ContactUs />
+          ) : (
+            <>
+              <Hero onBuildPackage={() => setShowPackageBuilder(true)} />
+              <TKMoments />
+              <WeddingCarousel />
+              <Packageposter onBuildPackage={() => setShowPackageBuilder(true)} />
+            </>
+          )}
+          <MinimalFooter onNavigate={handleNavigate} />
         </>
       )}
-      <MinimalFooter onNavigate={handleNavigate} />
     </UserLayout>
-  );
-}
-
-function RoutedUserShell() {
-  const location = useLocation();
-  return <UserShell page={pathToPage[location.pathname] || "home"} />;
-}
-
-export default function UserRoutes() {
-  return (
-    <Routes>
-      <Route path="/" element={<RoutedUserShell />} />
-      <Route path="/about" element={<UserShell page="about" />} />
-      <Route path="/contact" element={<UserShell page="contact" />} />
-      <Route path="/wedding-stories" element={<UserShell page="wedding-stories" />} />
-      <Route path="/wedding-films" element={<UserShell page="wedding-films" />} />
-      <Route path="*" element={<RoutedUserShell />} />
-    </Routes>
   );
 }

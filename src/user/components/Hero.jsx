@@ -21,7 +21,7 @@ const Hero = ({ onBuildPackage }) => {
       {/* Content */}
       <div className="relative z-10 flex min-h-[100svh] flex-col items-center justify-center px-4 pt-20 text-center text-white sm:items-start sm:px-10 sm:text-left lg:px-20 xl:px-28">
         
-        <h1 className="mb-4 max-w-full font-['Birthstone',cursive] text-5xl font-normal tracking-normal text-[#fff7e8] sm:text-7xl md:text-8xl">
+        <h1 className="hero-brand-script mb-4 max-w-full text-6xl font-normal tracking-normal text-[#fff7e8] sm:text-7xl md:text-8xl lg:text-[6.8rem]">
           TK Moments
         </h1>
 

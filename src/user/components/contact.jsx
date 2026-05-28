@@ -60,7 +60,7 @@ const ContectUs = () => {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_16%,rgba(255,244,222,0.46),transparent_28%)]" />
         </div>
 
-        <div className="relative mx-auto grid min-h-[92vh] max-w-[1440px] grid-cols-[1fr_1.02fr] gap-12 px-6 py-8 lg:px-16 xl:px-20 max-lg:grid-cols-1 max-lg:py-12 max-sm:min-h-0 max-sm:gap-6 max-sm:px-4 max-sm:py-6">
+        <div className="relative mx-auto grid min-h-[92vh] max-w-[1440px] grid-cols-[1fr_1.02fr] gap-12 px-6 py-8 lg:px-16 xl:px-20 max-lg:grid-cols-1 max-lg:py-12 max-sm:min-h-0 max-sm:gap-7 max-sm:px-4 max-sm:pb-7 max-sm:pt-12">
           <div className="flex max-w-[620px] flex-col justify-between gap-12 py-10 text-[#201b17] max-lg:py-0 max-sm:gap-5 max-sm:text-center">
             <div>
               <p className="mb-5 text-[0.7rem] font-semibold uppercase tracking-[0.36em] text-[#6f3d48] max-sm:mb-3 max-sm:text-[0.62rem] max-sm:tracking-[0.28em]">
