@@ -4,7 +4,7 @@ import { Input } from '@user/components/ui/input'
 import { Separator } from '@user/components/ui/separator'
 import { User, Mail, Phone } from 'lucide-react'
 
-export function DetailsForm({ onSubmit, onBack }) {
+export function DetailsForm({ onSubmit, onBack, isSubmitting = false }) {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -105,7 +105,9 @@ export function DetailsForm({ onSubmit, onBack }) {
           <Button type="button" variant="outline" onClick={onBack} className="w-full sm:w-auto">
             Back
           </Button>
-          <Button type="submit" className="w-full sm:w-auto">Continue to Summary</Button>
+          <Button type="submit" disabled={isSubmitting} className="w-full sm:w-auto">
+            {isSubmitting ? 'Saving...' : 'Continue to Summary'}
+          </Button>
         </div>
       </form>
     </div>

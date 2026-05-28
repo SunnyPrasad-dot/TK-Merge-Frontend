@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { ArrowLeft, Plus, Camera, Sparkles } from 'lucide-react'
 import { Button } from './ui/button'
 import { Separator } from './ui/separator'
@@ -6,7 +6,8 @@ import { EventCard } from './event-card'
 import { ServiceSelector } from './service-selector'
 import { PricingSummary } from './pricing-summary'
 import { PreviewModal } from './preview-modal'
-import { SERVICES } from '@user/services/package-data'
+import { SERVICES, normalizeService } from '@user/services/package-data'
+import { getServices } from '@user/services/api'
 
 function generateId() {
   return Math.random().toString(36).substring(2, 9)
@@ -27,8 +28,29 @@ export function PackageBuilder({ onBack }) {
   const [activeEventId, setActiveEventId] = useState(events[0].id)
   const [discountPercent, setDiscountPercent] = useState(0)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [backendServices, setBackendServices] = useState([])
 
   const activeEvent = events.find((e) => e.id === activeEventId) || events[0]
+  const shootServices = backendServices.filter((service) => service.type === 'shoot')
+  const addonServices = backendServices.filter((service) => service.type === 'addon')
+  const services = shootServices.length > 0 ? shootServices : SERVICES
+
+  useEffect(() => {
+    let isMounted = true
+
+    getServices()
+      .then((data) => {
+        if (!isMounted) return
+        setBackendServices((data.services || []).map(normalizeService))
+      })
+      .catch((error) => {
+        console.error('Unable to load backend services:', error)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const handleAddEvent = useCallback(() => {
     const newEvent = createNewEvent()
@@ -183,7 +205,7 @@ export function PackageBuilder({ onBack }) {
               </div>
 
               <ServiceSelector
-                services={SERVICES}
+                services={services}
                 selectedServices={activeEvent.selectedServices}
                 onToggle={handleToggleService}
               />
@@ -206,7 +228,7 @@ export function PackageBuilder({ onBack }) {
           <div className="min-w-0 lg:sticky lg:top-24 lg:self-start">
             <PricingSummary
               events={events}
-              services={SERVICES}
+              services={services}
               onGeneratePDF={handleGeneratePDF}
               onPreview={() => setPreviewOpen(true)}
             />
@@ -231,7 +253,8 @@ export function PackageBuilder({ onBack }) {
         open={previewOpen}
         onOpenChange={setPreviewOpen}
         events={events}
-        services={SERVICES}
+        services={services}
+        addonServices={addonServices}
         discountPercent={discountPercent}
       />
     </div>

@@ -45,6 +45,14 @@ export const ALBUM_ADDONS = [
 
 export const EDITED_PHOTO_PRICE = 30
 
+const iconMap = {
+  BookOpen,
+  HardDrive,
+  Image,
+  Play,
+  Video,
+}
+
 export function createAlbumSelection() {
   return {
     premiumAlbum: false,
@@ -57,33 +65,45 @@ export function createAlbumSelection() {
   }
 }
 
-export function getAlbumLineItems(albumSelection) {
-  const selectedAddons = ALBUM_ADDONS.filter((addon) => albumSelection[addon.id]).map(
+export function getAlbumLineItems(albumSelection, addonServices = ALBUM_ADDONS) {
+  const selectedAddons = addonServices.filter((addon) => albumSelection[addon.id]).map(
     (addon) => ({
       id: addon.id,
+      serviceId: addon.backendId || addon.id,
       name: addon.name,
-      price: addon.price,
+      price: addon.price || addon.pricePerDay || 0,
+      priceType: addon.priceType,
     })
   )
 
   const editedPhotos = Number(albumSelection.editedPhotos) || 0
   if (editedPhotos > 0) {
+    const editedPhotoService = addonServices.find((addon) =>
+      addon.name?.toLowerCase().includes('edited photo')
+    )
+
     selectedAddons.push({
       id: 'editedPhotos',
+      serviceId: editedPhotoService?.backendId || editedPhotoService?.id || 'editedPhotos',
       name: `Edited Photos (${editedPhotos} x ${formatPrice(EDITED_PHOTO_PRICE)})`,
-      price: editedPhotos * EDITED_PHOTO_PRICE,
+      price: editedPhotoService?.price
+        ? editedPhotos * editedPhotoService.price
+        : editedPhotos * EDITED_PHOTO_PRICE,
+      quantity: editedPhotos,
+      priceType: editedPhotoService?.priceType,
     })
   }
 
   return selectedAddons
 }
 
-export function calculateAlbumTotal(albumSelection) {
-  return getAlbumLineItems(albumSelection).reduce((total, item) => total + item.price, 0)
+export function calculateAlbumTotal(albumSelection, addonServices) {
+  return getAlbumLineItems(albumSelection, addonServices).reduce((total, item) => total + item.price, 0)
 }
 
-export function AlbumSection({ albumSelection, onChange, onBack, onContinue }) {
-  const albumTotal = calculateAlbumTotal(albumSelection)
+export function AlbumSection({ albumSelection, addonServices, onChange, onBack, onContinue }) {
+  const visibleAddons = addonServices?.length ? addonServices : ALBUM_ADDONS
+  const albumTotal = calculateAlbumTotal(albumSelection, visibleAddons)
 
   const handleToggle = (id) => {
     onChange({
@@ -110,9 +130,10 @@ export function AlbumSection({ albumSelection, onChange, onBack, onContinue }) {
       </div>
 
       <div className="grid gap-3">
-        {ALBUM_ADDONS.map((addon) => {
-          const Icon = addon.icon
+        {visibleAddons.map((addon) => {
+          const Icon = typeof addon.icon === 'string' ? iconMap[addon.icon] || BookOpen : addon.icon
           const selected = albumSelection[addon.id]
+          const price = addon.price || addon.pricePerDay || 0
 
           return (
             <button
@@ -130,7 +151,7 @@ export function AlbumSection({ albumSelection, onChange, onBack, onContinue }) {
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block break-words text-sm font-medium">{addon.name}</span>
-                <span className="block text-xs text-muted-foreground">{formatPrice(addon.price)}</span>
+                <span className="block text-xs text-muted-foreground">{formatPrice(price)}</span>
               </span>
               <span
                 className={`grid size-5 shrink-0 place-items-center rounded-full border ${

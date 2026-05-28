@@ -61,6 +61,34 @@ export const EVENT_SUGGESTIONS = [
   'Cocktail Party',
 ]
 
+const roleIconMap = {
+  traditional_photographer: 'Camera',
+  traditional_videographer: 'Video',
+  candid_photographer: 'Sparkles',
+  cinematographer: 'Clapperboard',
+  drone: 'Plane',
+}
+
+export function normalizeService(service) {
+  return {
+    id: service._id || service.id,
+    backendId: service._id || service.id,
+    name: service.name,
+    description:
+      service.priceType === 'per_day'
+        ? 'Per day service'
+        : service.priceType === 'per_unit'
+          ? 'Quantity based service'
+          : 'Fixed price service',
+    pricePerDay: service.price || service.pricePerDay || 0,
+    price: service.price || service.pricePerDay || 0,
+    priceType: service.priceType,
+    type: service.type,
+    role: service.role,
+    icon: roleIconMap[service.role] || service.icon || 'Camera',
+  }
+}
+
 export function formatPrice(amount) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',

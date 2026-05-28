@@ -12,20 +12,46 @@ import {
   AlbumSection,
   createAlbumSelection,
 } from '@user/components/album-section'
+import { createBooking } from '@user/services/api'
+import { buildBookingPayload } from '@user/services/booking-payload'
 
 export function PreviewModal({
   open,
   onOpenChange,
   events,
   services,
+  addonServices,
 }) {
   const [step, setStep] = useState('album')
   const [customerDetails, setCustomerDetails] = useState(null)
   const [albumSelection, setAlbumSelection] = useState(createAlbumSelection)
+  const [isSavingEnquiry, setIsSavingEnquiry] = useState(false)
 
-  const handleDetailsSubmit = (details) => {
-    setCustomerDetails(details)
-    setStep('total')
+  const handleDetailsSubmit = async (details) => {
+    const payload = buildBookingPayload({
+      events,
+      services,
+      albumSelection,
+      addonServices,
+      customerDetails: details,
+      isConfirmed: false,
+    })
+
+    if (payload.events.length === 0) {
+      alert('Please select backend services before continuing.')
+      return
+    }
+
+    setIsSavingEnquiry(true)
+    try {
+      await createBooking(payload)
+      setCustomerDetails(details)
+      setStep('total')
+    } catch (error) {
+      alert(error.message || 'Unable to save enquiry')
+    } finally {
+      setIsSavingEnquiry(false)
+    }
   }
 
   const handleConfirm = () => {
@@ -49,6 +75,7 @@ export function PreviewModal({
       setStep('album')
       setCustomerDetails(null)
       setAlbumSelection(createAlbumSelection())
+      setIsSavingEnquiry(false)
     }
     onOpenChange(newOpen)
   }
@@ -72,6 +99,7 @@ export function PreviewModal({
         {step === 'album' && (
           <AlbumSection
             albumSelection={albumSelection}
+            addonServices={addonServices}
             onChange={setAlbumSelection}
             onBack={() => handleCloseModal(false)}
             onContinue={() => setStep('details')}
@@ -82,6 +110,7 @@ export function PreviewModal({
           <DetailsForm
             onSubmit={handleDetailsSubmit}
             onBack={handleDetailsBack}
+            isSubmitting={isSavingEnquiry}
           />
         )}
 
@@ -90,6 +119,7 @@ export function PreviewModal({
             events={events}
             services={services}
             albumSelection={albumSelection}
+            addonServices={addonServices}
             customerDetails={customerDetails}
             onConfirm={handleConfirm}
             onBack={handleBack}

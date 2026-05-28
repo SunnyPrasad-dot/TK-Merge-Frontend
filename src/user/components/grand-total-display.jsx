@@ -1,22 +1,54 @@
+import { useState } from 'react'
 import { Button } from '@user/components/ui/button'
 import { Separator } from '@user/components/ui/separator'
 import { formatPrice, calculateGrandTotal } from '@user/services/package-data'
 import { calculateAlbumTotal, getAlbumLineItems } from '@user/components/album-section'
+import { createBooking } from '@user/services/api'
+import { buildBookingPayload } from '@user/services/booking-payload'
 import { Check, Mail, Phone, User } from 'lucide-react'
 
 export function GrandTotalDisplay({
   events,
   services,
   albumSelection,
+  addonServices,
   customerDetails,
   onConfirm,
   onBack,
 }) {
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const packageTotal = calculateGrandTotal(events, services)
-  const albumTotal = calculateAlbumTotal(albumSelection)
+  const albumTotal = calculateAlbumTotal(albumSelection, addonServices?.length ? addonServices : undefined)
   const grandTotal = packageTotal + albumTotal
-  const albumLineItems = getAlbumLineItems(albumSelection)
+  const albumLineItems = getAlbumLineItems(albumSelection, addonServices?.length ? addonServices : undefined)
   const eventsWithServices = events.filter((e) => e.selectedServices.length > 0)
+
+  const handleConfirm = async () => {
+    const payload = buildBookingPayload({
+      events,
+      services,
+      albumSelection,
+      addonServices,
+      customerDetails,
+      isConfirmed: true,
+    })
+
+    if (payload.events.length === 0) {
+      alert('Please select backend services before confirming the booking.')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const data = await createBooking(payload)
+      alert(`${data.message || 'Booking created'}${data.booking?.bookingId ? `: ${data.booking.bookingId}` : ''}`)
+      onConfirm()
+    } catch (error) {
+      alert(error.message || 'Unable to create booking')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   return (
     <div className="space-y-6 pb-1 pt-1">
@@ -126,8 +158,8 @@ export function GrandTotalDisplay({
         <Button variant="outline" onClick={onBack} className="w-full sm:flex-1">
           Back
         </Button>
-        <Button onClick={onConfirm} className="w-full sm:flex-1">
-          Confirm & Proceed
+        <Button onClick={handleConfirm} disabled={isSubmitting} className="w-full sm:flex-1">
+          {isSubmitting ? 'Submitting...' : 'Confirm & Proceed'}
         </Button>
       </div>
     </div>

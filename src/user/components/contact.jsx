@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { sendContactMessage } from '@user/services/api';
 
 const COUPLE_IMAGE =
   'https://tse4.mm.bing.net/th/id/OIP.IEpYBZOWw-CitrpFOKJIwAHaLH?pid=ImgDet&w=187&h=280&c=7&dpr=1.3&o=7&rm=3';
@@ -36,15 +37,39 @@ const ContectUs = () => {
     message: '',
   });
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   const [mapAddressOpen, setMapAddressOpen] = useState(false);
 
-  const handleChange = (e) =>
+  const handleChange = (e) => {
+    setError('');
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form submitted:', form);
-    setSubmitted(true);
+    setIsSubmitting(true);
+    setError('');
+
+    try {
+      await sendContactMessage({
+        name: form.firstName.trim(),
+        email: form.email.trim(),
+        phone: form.phone.trim(),
+        message: form.message.trim(),
+      });
+      setSubmitted(true);
+      setForm({
+        firstName: '',
+        email: '',
+        phone: '',
+        message: '',
+      });
+    } catch (err) {
+      setError(err.message || 'Unable to send enquiry. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -273,12 +298,18 @@ const ContectUs = () => {
                         We respond with availability, collections, and a
                         consultation time.
                       </p>
+                      {error && (
+                        <p className="mt-2 max-w-[330px] text-[0.8rem] font-light leading-5 text-[#ffb4a8] max-sm:mx-auto">
+                          {error}
+                        </p>
+                      )}
                     </div>
                     <button
                       type="submit"
+                      disabled={isSubmitting}
                       className="group inline-flex items-center justify-center gap-3 rounded-[6px] bg-[#FFFFFF] px-7 py-4 text-[0.76rem] font-semibold uppercase tracking-[0.22em] text-[#000000] transition-all duration-300 hover:shadow-[0_16px_36px_rgba(0,0,0,0.22)]"
                     >
-                      Send Enquiry
+                      {isSubmitting ? 'Sending...' : 'Send Enquiry'}
                       <span className="text-lg leading-none transition-transform duration-300 group-hover:translate-x-1">
                         &rarr;
                       </span>
