@@ -1,5 +1,5 @@
 import { format } from 'date-fns'
-import { CalendarIcon, Clock, X } from 'lucide-react'
+import { CalendarIcon, Clock, MapPin, X } from 'lucide-react'
 import { Button } from '@user/components/ui/button'
 import { Card, CardContent } from '@user/components/ui/card'
 import { Input } from '@user/components/ui/input'
@@ -56,6 +56,19 @@ export function EventCard({ event, onUpdate, onRemove, showRemove }) {
                   {suggestion}
                 </button>
               ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-medium text-foreground">Location</label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <Input
+                placeholder="Venue, city, or address"
+                value={event.location || ''}
+                onChange={(e) => onUpdate({ ...event, location: e.target.value })}
+                className="bg-background pl-10"
+              />
             </div>
           </div>
 

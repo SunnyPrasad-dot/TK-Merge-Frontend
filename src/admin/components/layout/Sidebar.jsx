@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { href: "/admin/inquiries", label: "Enquiries", icon: MessageSquare },
   { href: "/admin/photographers", label: "Photographers", icon: Users },
   { href: "/admin/prices", label: "Services", icon: DollarSign },
+  { href: "/admin/payments", label: "Payments", icon: DollarSign },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];
 
@@ -98,7 +99,7 @@ export default function Sidebar() {
       <div className="px-3 py-4 border-t border-white/5">
         <div className={`flex items-center ${isCollapsed ? 'justify-center flex-col gap-2' : 'gap-3'} px-2 py-2.5 rounded-lg`}>
           <Avatar className="h-8 w-8 shrink-0">
-            <AvatarImage src="https://i.pravatar.cc/100?img=60" />
+            <AvatarImage src={user?.avatar || ""} />
             <AvatarFallback className="bg-primary/20 text-primary-foreground text-xs font-semibold">
               {user?.name?.charAt(0) || "A"}
             </AvatarFallback>

@@ -13,66 +13,10 @@ import { Search, SlidersHorizontal, ArrowRight, MapPin, Calendar } from "lucide-
 const STATUS_CONFIG = {
   pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },
   confirmed: { label: "Confirmed", cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" },
+  cancelled: { label: "Cancelled", cls: "bg-red-50 text-red-700 ring-1 ring-red-200" },
 };
 
-const FAKE_BOOKINGS = [
-  {
-    id: 1,
-    customer: { name: "Abhay Savant", email: "abhaysavant7@gmail.com", phone: "7863854896", note: "Two day destination wedding coverage." },
-    events: [
-      { day: 1, date: "2026-05-20", location: "Greece", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 1 }] },
-      { day: 2, date: "2026-05-21", location: "Greece", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 1 }, { serviceId: "69fb82d036a42d4eb833a2de", quantity: 1 }] },
-    ],
-    addons: [{ serviceId: "69fb82d036a42d4eb833a2de", quantity: 1 }],
-    isConfirmed: false,
-    totalPrice: 24000,
-  },
-  {
-    id: 2,
-    customer: { name: "Pancholi Pankaj", email: "pancholipankaj255@gmail.com", phone: "9876543210", note: "Wedding photography" },
-    events: [{ day: 1, date: "2026-05-25", location: "Ahmedabad", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 2 }] }],
-    addons: [],
-    isConfirmed: true,
-    totalPrice: 18000,
-  },
-  {
-    id: 3,
-    customer: { name: "Riya Mehta", email: "riya.mehta@gmail.com", phone: "9825012345", note: "Need candid and drone coverage for engagement." },
-    events: [{ day: 1, date: "2026-06-02", location: "Surat", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 1 }] }],
-    addons: [{ serviceId: "69fb82d036a42d4eb833a2df", quantity: 1 }],
-    isConfirmed: false,
-    totalPrice: 10000,
-  },
-  {
-    id: 4,
-    customer: { name: "Nikhil Shah", email: "nikhil.shah@gmail.com", phone: "9909911223", note: "Reception event with album addon." },
-    events: [{ day: 1, date: "2026-06-12", location: "Vadodara", services: [{ serviceId: "69fb82d036a42d4eb833a2e0", quantity: 1 }] }],
-    addons: [{ serviceId: "69fb82d036a42d4eb833a2df", quantity: 2 }],
-    isConfirmed: true,
-    totalPrice: 22000,
-  },
-  {
-    id: 5,
-    customer: { name: "Ayesha Khan", email: "ayesha.khan@gmail.com", phone: "9898989898", note: "Haldi and sangeet on separate days." },
-    events: [
-      { day: 1, date: "2026-06-18", location: "Udaipur", services: [{ serviceId: "69fb82d036a42d4eb833a2e1", quantity: 1 }] },
-      { day: 2, date: "2026-06-19", location: "Udaipur", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 1 }] },
-    ],
-    addons: [],
-    isConfirmed: false,
-    totalPrice: 30000,
-  },
-  {
-    id: 6,
-    customer: { name: "Karan Desai", email: "karan.desai@gmail.com", phone: "9723456789", note: "Corporate event photography." },
-    events: [{ day: 1, date: "2026-06-26", location: "Mumbai", services: [{ serviceId: "69fb82d036a42d4eb833a2e2", quantity: 1 }] }],
-    addons: [],
-    isConfirmed: true,
-    totalPrice: 15000,
-  },
-];
-
-const getBookingStatus = (booking) => booking.status || (booking.isConfirmed ? "confirmed" : "pending");
+const getBookingStatus = (booking) => booking.status || "pending";
 const getFirstEvent = (booking) => booking.events?.[0] || {};
 const getEventSummary = (booking) => `${booking.events?.length || 0} day${booking.events?.length === 1 ? "" : "s"}`;
 
@@ -89,17 +33,28 @@ export default function Bookings() {
   const { settings } = useSettings();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const { data: apiBookings, isLoading } = useGetBookings({
-    search: search || undefined,
-    status: status !== "all" ? status : undefined,
-  });
+  const [sort, setSort] = useState("newest");
+  const { data: apiBookings = [], isLoading, error } = useGetBookings();
 
-  const allBookings = apiBookings?.length ? apiBookings : FAKE_BOOKINGS;
+  const allBookings = apiBookings.filter((booking) => booking.type === "booking" || !booking.type);
   const bookings = allBookings.filter((b) => {
     const customer = b.customer || {};
-    const matchSearch = !search || customer.name?.toLowerCase().includes(search.toLowerCase()) || customer.email?.toLowerCase().includes(search.toLowerCase());
+    const firstEvent = getFirstEvent(b);
+    const query = search.trim().toLowerCase();
+    const matchSearch = !query ||
+      customer.name?.toLowerCase().includes(query) ||
+      customer.email?.toLowerCase().includes(query) ||
+      customer.phone?.toLowerCase().includes(query) ||
+      firstEvent.location?.toLowerCase().includes(query) ||
+      b.bookingId?.toLowerCase().includes(query);
     const matchStatus = status === "all" || getBookingStatus(b) === status;
     return matchSearch && matchStatus;
+  }).sort((a, b) => {
+    if (sort === "oldest") return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+    if (sort === "amount_high") return (b.estimate || 0) - (a.estimate || 0);
+    if (sort === "amount_low") return (a.estimate || 0) - (b.estimate || 0);
+    if (sort === "date") return new Date(getFirstEvent(a).date || 0) - new Date(getFirstEvent(b).date || 0);
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
   });
 
   const statusCounts = { all: allBookings.length };
@@ -118,7 +73,7 @@ export default function Bookings() {
       </div>
 
       {/* Filter bar */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] items-center">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] items-center">
         <div className="relative w-full max-w-full md:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-muted-foreground/70" />
           <Input
@@ -137,6 +92,19 @@ export default function Bookings() {
             <SelectItem value="all">All Statuses</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="confirmed">Confirmed</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sort} onValueChange={setSort} className="w-full md:w-44">
+          <SelectTrigger className="h-9 w-full bg-card border-border rounded-xl shadow-sm text-sm dark:bg-card">
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="oldest">Oldest</SelectItem>
+            <SelectItem value="date">Event Date</SelectItem>
+            <SelectItem value="amount_high">Amount High</SelectItem>
+            <SelectItem value="amount_low">Amount Low</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -199,6 +167,12 @@ export default function Bookings() {
                   <td className="px-6 py-4"><Skeleton className="h-4 w-12 ml-auto" /></td>
                 </tr>
               ))
+            ) : error ? (
+              <tr>
+                <td colSpan={6} className="text-center py-14 text-red-500 text-sm">
+                  {error.message}
+                </td>
+              </tr>
             ) : !bookings.length ? (
               <tr>
                 <td colSpan={6} className="text-center py-14 text-slate-400 dark:text-muted-foreground text-sm">
@@ -247,7 +221,7 @@ export default function Bookings() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">
-                      <span className="font-semibold text-slate-900 dark:text-foreground">{formatCurrency(b.totalPrice || 0, settings.currency)}</span>
+                    <span className="font-semibold text-slate-900 dark:text-foreground">{formatCurrency(b.estimate || b.totalPrice || 0, settings.currency)}</span>
                       <Button asChild variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary">
                         <Link to={`/admin/bookings/${b.id}`}><ArrowRight className="h-3.5 w-3.5" /></Link>
                       </Button>

@@ -1,89 +1,27 @@
-import { Link, useParams } from "react-router-dom";
-import { useGetPhotographer } from "@admin/services/api";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { useDeletePhotographer, useGetPhotographer, useUpdatePhotographer } from "@admin/services/api";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { format } from "date-fns";
-import { MapPin, Mail, Phone, Calendar, ChevronLeft, Edit } from "lucide-react";
+import { useState } from "react";
+import { useToast } from "@shared/hooks/use-toast";
+import { MapPin, Mail, Phone, Calendar, ChevronLeft, Edit, Save, Trash2 } from "lucide-react";
 
 const STATUS_CONFIG = {
   active: { label: "Active", cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
   inactive: { label: "Inactive", cls: "bg-red-50 text-red-700 ring-1 ring-red-200", dot: "bg-red-500" },
 };
 
-const FAKE_PHOTOGRAPHERS = {
-  "665f1c2a8f1b2c0012345678": {
-    id: "665f1c2a8f1b2c0012345678",
-    name: "Rahul Patel",
-    avatar: "https://i.pravatar.cc/300?img=12",
-    email: "rahul@gmail.com",
-    phone: "9876543210",
-    city: "Ahmedabad",
-    role: "candid_photographer",
-    bookedDates: ["2026-05-25"],
-    isActive: true,
-  },
-  "665f1c2a8f1b2c0098765432": {
-    id: "665f1c2a8f1b2c0098765432",
-    name: "Payal Patel",
-    avatar: "https://i.pravatar.cc/300?img=47",
-    email: "payal@gmail.com",
-    phone: "9876543210",
-    city: "Ahmedabad",
-    role: "drone",
-    bookedDates: ["2026-05-25"],
-    isActive: true,
-  },
-  "665f1c2a8f1b2c0044444444": {
-    id: "665f1c2a8f1b2c0044444444",
-    name: "Amit Shah",
-    avatar: "https://i.pravatar.cc/300?img=33",
-    email: "amit@gmail.com",
-    phone: "9876543211",
-    city: "Surat",
-    role: "traditional_photographer",
-    bookedDates: ["2026-06-02"],
-    isActive: true,
-  },
-  "665f1c2a8f1b2c0055555555": {
-    id: "665f1c2a8f1b2c0055555555",
-    name: "Neha Verma",
-    avatar: "https://i.pravatar.cc/300?img=44",
-    email: "neha@gmail.com",
-    phone: "9876543212",
-    city: "Mumbai",
-    role: "cinematographer",
-    bookedDates: ["2026-06-12", "2026-06-26"],
-    isActive: true,
-  },
-  "665f1c2a8f1b2c0066666666": {
-    id: "665f1c2a8f1b2c0066666666",
-    name: "Imran Sheikh",
-    avatar: "https://i.pravatar.cc/300?img=15",
-    email: "imran@gmail.com",
-    phone: "9876543213",
-    city: "Udaipur",
-    role: "traditional_videographer",
-    bookedDates: ["2026-06-18"],
-    isActive: true,
-  },
-  "665f1c2a8f1b2c0077777777": {
-    id: "665f1c2a8f1b2c0077777777",
-    name: "Meera Joshi",
-    avatar: "https://i.pravatar.cc/300?img=45",
-    email: "meera@gmail.com",
-    phone: "9876543214",
-    city: "Rajkot",
-    role: "candid_photographer",
-    bookedDates: [],
-    isActive: false,
-  },
-};
-
 export default function PhotographerDetail() {
   const params = useParams();
   const id = params.id;
+  const navigate = useNavigate();
+  const { toast } = useToast();
   const { data: apiPhotographer, isLoading } = useGetPhotographer(id, { query: { enabled: !!id } });
+  const updatePhotographer = useUpdatePhotographer();
+  const deletePhotographer = useDeletePhotographer();
+  const [isEditing, setIsEditing] = useState(false);
 
-  const photographer = apiPhotographer || FAKE_PHOTOGRAPHERS[id] || FAKE_PHOTOGRAPHERS["665f1c2a8f1b2c0012345678"];
+  const photographer = apiPhotographer;
 
   if (isLoading) {
     return (
@@ -93,8 +31,52 @@ export default function PhotographerDetail() {
       </div>
     );
   }
+  if (!photographer) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-card py-16 text-center text-sm text-muted-foreground dark:border-border">
+        Photographer not found.
+      </div>
+    );
+  }
 
   const sc = photographer.isActive ? STATUS_CONFIG.active : STATUS_CONFIG.inactive;
+
+  const handleUpdate = (e) => {
+    e.preventDefault();
+    if (!window.confirm("Are you sure you want to update this photographer?")) return;
+    const form = new FormData(e.currentTarget);
+    updatePhotographer.mutate({
+      id,
+      data: {
+        name: form.get("name"),
+        avatar: form.get("avatar"),
+        email: form.get("email"),
+        phone: form.get("phone"),
+        city: form.get("city"),
+        role: form.get("role"),
+        bookedDates: photographer.bookedDates || [],
+        isActive: form.get("isActive") === "true",
+        perDayRate: Number(form.get("perDayRate") || photographer.perDayRate || 0),
+      },
+    }, {
+      onSuccess: () => {
+        setIsEditing(false);
+        toast({ title: "Photographer Updated", description: "Profile changes saved." });
+      },
+      onError: (err) => toast({ title: "Update failed", description: err.message }),
+    });
+  };
+
+  const handleDelete = () => {
+    if (!window.confirm("Are you sure you want to delete this photographer?")) return;
+    deletePhotographer.mutate(id, {
+      onSuccess: () => {
+        toast({ title: "Photographer Deleted", description: "Profile removed." });
+        navigate("/admin/photographers");
+      },
+      onError: (err) => toast({ title: "Delete failed", description: err.message }),
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -105,7 +87,13 @@ export default function PhotographerDetail() {
       <div className="bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-border shadow-sm p-6">
         <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <img src={photographer.avatar || `https://i.pravatar.cc/300?u=${id}`} alt={photographer.name} className="h-20 w-20 rounded-2xl object-cover ring-1 ring-slate-100 shadow-md" />
+            {photographer.avatar ? (
+              <img src={photographer.avatar} alt={photographer.name} className="h-20 w-20 rounded-2xl object-cover ring-1 ring-slate-100 shadow-md" />
+            ) : (
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-lg font-bold text-primary ring-1 ring-slate-100 shadow-md">
+                {(photographer.name || "?").slice(0, 2).toUpperCase()}
+              </div>
+            )}
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-foreground">{photographer.name}</h1>
               <p className="text-slate-500 dark:text-muted-foreground mt-0.5">{photographer.role}</p>
@@ -115,11 +103,41 @@ export default function PhotographerDetail() {
               </span>
             </div>
           </div>
-          <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-border/60 text-sm font-medium text-slate-700 dark:text-muted-foreground hover:bg-slate-50 dark:bg-slate-900/50 transition-all">
+          <div className="flex flex-wrap gap-2">
+          <button onClick={() => setIsEditing((value) => !value)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 dark:border-border/60 text-sm font-medium text-slate-700 dark:text-muted-foreground hover:bg-slate-50 dark:bg-slate-900/50 transition-all">
             <Edit className="h-4 w-4" /> Edit Profile
           </button>
+          <button onClick={handleDelete} disabled={deletePhotographer.isPending} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-sm font-medium text-red-600 hover:bg-red-50 transition-all">
+            <Trash2 className="h-4 w-4" /> Delete
+          </button>
+          </div>
         </div>
       </div>
+
+      {isEditing && (
+        <form onSubmit={handleUpdate} className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm md:grid-cols-2">
+          <input name="name" defaultValue={photographer.name} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="Name" required />
+          <input name="avatar" defaultValue={photographer.avatar} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="image.jpg" />
+          <input name="email" defaultValue={photographer.email} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="Email" required />
+          <input name="phone" defaultValue={photographer.phone} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="Phone" required />
+          <input name="city" defaultValue={photographer.city} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="City" required />
+          <select name="role" defaultValue={photographer.role} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+            <option value="candid_photographer">Candid Photographer</option>
+            <option value="traditional_photographer">Traditional Photographer</option>
+            <option value="traditional_videographer">Traditional Videographer</option>
+            <option value="cinematographer">Cinematographer</option>
+            <option value="drone">Drone</option>
+          </select>
+          <select name="isActive" defaultValue={String(photographer.isActive)} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+          <input name="perDayRate" type="number" defaultValue={photographer.perDayRate || ""} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="Per day rate" />
+          <button disabled={updatePhotographer.isPending} className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 md:col-span-2">
+            <Save className="h-4 w-4" /> {updatePhotographer.isPending ? "Saving..." : "Save Changes"}
+          </button>
+        </form>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-border shadow-sm p-5">

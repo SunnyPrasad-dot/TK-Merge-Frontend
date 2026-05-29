@@ -4,7 +4,7 @@ import { useAuth } from "@admin/services/auth";
 import { Bell, Menu } from "lucide-react";
 import { Button } from "@admin/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@admin/components/ui/avatar";
-import { Sheet, SheetContent, SheetTrigger } from "@admin/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@admin/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,6 +21,7 @@ const PAGE_TITLES = {
   "/admin/inquiries": "Enquiries",
   "/admin/photographers": "Photographers",
   "/admin/prices": "Services",
+  "/admin/payments": "Payments",
   "/admin/settings": "Settings",
   "/admin/profile": "My Profile",
 };
@@ -58,6 +59,8 @@ export default function Navbar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-60 border-0">
+            <SheetTitle className="sr-only">Admin navigation</SheetTitle>
+            <SheetDescription className="sr-only">Main admin menu links</SheetDescription>
             <Sidebar />
           </SheetContent>
         </Sheet>
@@ -74,7 +77,7 @@ export default function Navbar() {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-lg hover:bg-muted transition-colors">
               <Avatar className="h-7 w-7">
-                <AvatarImage src="https://i.pravatar.cc/100?img=60" />
+                <AvatarImage src={user?.avatar || ""} />
                 <AvatarFallback className="bg-primary/20 text-primary-foreground text-xs font-semibold">
                   {user?.name?.charAt(0) || "A"}
                 </AvatarFallback>

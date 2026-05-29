@@ -4,19 +4,26 @@ import { useAuth } from "@admin/services/auth";
 import { Camera, Lock, Mail, Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
-  const [email, setEmail] = useState("admin@tkstudio.com");
-  const [password, setPassword] = useState("admin123");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 600));
-    login(email, password);
-    navigate("/admin");
+    setError("");
+    try {
+      await login(email, password);
+      navigate("/admin");
+    } catch (err) {
+      setError(err.message || "Unable to sign in");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -53,6 +60,11 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {error}
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-slate-700 dark:text-muted-foreground">Email address</label>
               <div className="relative">
@@ -113,7 +125,7 @@ export default function Login() {
           </form>
 
           <p className="text-center text-xs text-slate-400 dark:text-muted-foreground/70">
-            Demo credentials pre-filled · admin@tkstudio.com
+            Admin login with email and password
           </p>
         </div>
       </div>

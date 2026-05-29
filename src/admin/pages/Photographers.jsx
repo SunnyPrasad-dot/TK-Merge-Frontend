@@ -10,15 +10,6 @@ const STATUS_CONFIG = {
   inactive: { label: "Inactive", cls: "bg-red-50 text-red-700 ring-1 ring-red-200", dot: "bg-red-500" },
 };
 
-const FAKE_PHOTOGRAPHERS = [
-  { id: "665f1c2a8f1b2c0012345678", name: "Rahul Patel", avatar: "https://i.pravatar.cc/300?img=12", email: "rahul@gmail.com", phone: "9876543210", city: "Ahmedabad", role: "candid_photographer", bookedDates: [], isActive: true },
-  { id: "665f1c2a8f1b2c0098765432", name: "Payal Patel", avatar: "https://i.pravatar.cc/300?img=47", email: "payal@gmail.com", phone: "9876543210", city: "Ahmedabad", role: "drone", bookedDates: ["2026-05-25"], isActive: true },
-  { id: "665f1c2a8f1b2c0044444444", name: "Amit Shah", avatar: "https://i.pravatar.cc/300?img=33", email: "amit@gmail.com", phone: "9876543211", city: "Surat", role: "traditional_photographer", bookedDates: ["2026-06-02"], isActive: true },
-  { id: "665f1c2a8f1b2c0055555555", name: "Neha Verma", avatar: "https://i.pravatar.cc/300?img=44", email: "neha@gmail.com", phone: "9876543212", city: "Mumbai", role: "cinematographer", bookedDates: ["2026-06-12", "2026-06-26"], isActive: true },
-  { id: "665f1c2a8f1b2c0066666666", name: "Imran Sheikh", avatar: "https://i.pravatar.cc/300?img=15", email: "imran@gmail.com", phone: "9876543213", city: "Udaipur", role: "traditional_videographer", bookedDates: ["2026-06-18"], isActive: true },
-  { id: "665f1c2a8f1b2c0077777777", name: "Meera Joshi", avatar: "https://i.pravatar.cc/300?img=45", email: "meera@gmail.com", phone: "9876543214", city: "Rajkot", role: "candid_photographer", bookedDates: [], isActive: false },
-];
-
 const ROLE_CONFIG = {
   candid_photographer: { label: "Candid Photographer", icon: Aperture, cls: "bg-cyan-50 text-cyan-700 ring-cyan-200" },
   drone: { label: "Drone Photographer", icon: Plane, cls: "bg-sky-50 text-sky-700 ring-sky-200" },
@@ -33,10 +24,11 @@ export default function Photographers() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [sort, setSort] = useState("name");
   const navigate = useNavigate();
-  const { data: apiPhotographers, isLoading } = useGetPhotographers({ search: search || undefined });
+  const { data: apiPhotographers = [], isLoading } = useGetPhotographers();
 
-  const base = apiPhotographers?.length ? apiPhotographers : FAKE_PHOTOGRAPHERS;
+  const base = apiPhotographers;
   const categoryStats = Object.entries(ROLE_CONFIG).map(([role, config]) => {
     const rolePhotographers = base.filter((p) => p.role === role);
     const available = rolePhotographers.filter((p) => p.isActive).length;
@@ -44,11 +36,24 @@ export default function Photographers() {
   });
   const photographers = base.filter((p) => {
     const roleLabel = getRoleLabel(p.role).toLowerCase();
-    const matchSearch = !search || p.name?.toLowerCase().includes(search.toLowerCase()) || roleLabel.includes(search.toLowerCase()) || p.role?.toLowerCase().includes(search.toLowerCase()) || p.city?.toLowerCase().includes(search.toLowerCase());
+    const query = search.trim().toLowerCase();
+    const matchSearch = !query ||
+      p.name?.toLowerCase().includes(query) ||
+      roleLabel.includes(query) ||
+      p.role?.toLowerCase().includes(query) ||
+      p.city?.toLowerCase().includes(query) ||
+      p.email?.toLowerCase().includes(query) ||
+      p.phone?.toLowerCase().includes(query);
     const currentStatus = p.isActive ? "active" : "inactive";
     const matchStatus = statusFilter === "all" || currentStatus === statusFilter;
     const matchCategory = categoryFilter === "all" || p.role === categoryFilter;
     return matchSearch && matchStatus && matchCategory;
+  }).sort((a, b) => {
+    if (sort === "city") return (a.city || "").localeCompare(b.city || "");
+    if (sort === "role") return getRoleLabel(a.role).localeCompare(getRoleLabel(b.role));
+    if (sort === "rate_high") return (b.perDayRate || 0) - (a.perDayRate || 0);
+    if (sort === "rate_low") return (a.perDayRate || 0) - (b.perDayRate || 0);
+    return (a.name || "").localeCompare(b.name || "");
   });
 
   const filters = [
@@ -69,7 +74,7 @@ export default function Photographers() {
         </button>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] items-center">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] items-center">
         <div className="relative w-full max-w-full md:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-muted-foreground/70" />
           <Input
@@ -90,6 +95,13 @@ export default function Photographers() {
             </button>
           ))}
         </div>
+        <select value={sort} onChange={(e) => setSort(e.target.value)} className="h-9 rounded-xl border border-border bg-card px-3 text-sm shadow-sm">
+          <option value="name">Sort: Name</option>
+          <option value="city">Sort: City</option>
+          <option value="role">Sort: Role</option>
+          <option value="rate_high">Rate High</option>
+          <option value="rate_low">Rate Low</option>
+        </select>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
@@ -138,11 +150,13 @@ export default function Photographers() {
                   to={`/admin/photographers/${p.id}`}
                   className="group flex items-center gap-3 rounded-2xl border border-border/60 bg-card p-3 shadow-sm transition hover:border-primary/30"
                 >
-                  <img
-                    src={p.avatar || `https://i.pravatar.cc/100?u=${p.id}`}
-                    alt={p.name}
-                    className="h-12 w-12 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-800"
-                  />
+                  {p.avatar ? (
+                    <img src={p.avatar} alt={p.name} className="h-12 w-12 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-800" />
+                  ) : (
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary ring-1 ring-slate-200 dark:ring-slate-800">
+                      {(p.name || "?").slice(0, 2).toUpperCase()}
+                    </div>
+                  )}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold text-foreground">{p.name}</p>
                     <p className="truncate text-[11px] text-slate-500 dark:text-muted-foreground">{getRoleLabel(p.role)}</p>
@@ -160,7 +174,13 @@ export default function Photographers() {
                 <div key={p.id} className="bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-border/60 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                   <div className="p-5">
                     <div className="flex items-start justify-between gap-4 mb-4">
-                      <img src={p.avatar || `https://i.pravatar.cc/300?u=${p.id}`} alt={p.name} className="h-16 w-16 rounded-2xl object-cover ring-1 ring-slate-100 shadow-sm" />
+                      {p.avatar ? (
+                        <img src={p.avatar} alt={p.name} className="h-16 w-16 rounded-2xl object-cover ring-1 ring-slate-100 shadow-sm" />
+                      ) : (
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-sm font-bold text-primary ring-1 ring-slate-100 shadow-sm">
+                          {(p.name || "?").slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ${sc.cls}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />
                         {sc.label}

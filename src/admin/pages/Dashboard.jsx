@@ -1,4 +1,4 @@
-import { useGetDashboardSummary } from "@admin/services/api";
+import { useGetBookings, useGetDashboardSummary, useGetInquiries } from "@admin/services/api";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
@@ -10,35 +10,25 @@ const STATUS_CONFIG = {
   confirmed: { label: "Confirmed", cls: "bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/30" },
 };
 
-const FAKE_BOOKINGS = [
-  { id: 1, customer: { name: "Abhay Savant", email: "abhaysavant7@gmail.com", phone: "7863854896", note: "Two day destination wedding coverage." }, events: [{ day: 1, date: "2026-05-20", location: "Greece", services: [] }], addons: [], isConfirmed: false },
-  { id: 2, customer: { name: "Pancholi Pankaj", email: "pancholipankaj255@gmail.com", phone: "9876543210", note: "Wedding photography" }, events: [{ day: 1, date: "2026-05-25", location: "Ahmedabad", services: [] }], addons: [], isConfirmed: true },
-  { id: 3, customer: { name: "Riya Mehta", email: "riya.mehta@gmail.com", phone: "9825012345", note: "Need candid and drone coverage for engagement." }, events: [{ day: 1, date: "2026-06-02", location: "Surat", services: [] }], addons: [], isConfirmed: false },
-  { id: 4, customer: { name: "Nikhil Shah", email: "nikhil.shah@gmail.com", phone: "9909911223", note: "Reception event with album addon." }, events: [{ day: 1, date: "2026-06-12", location: "Vadodara", services: [] }], addons: [], isConfirmed: true },
-  { id: 5, customer: { name: "Ayesha Khan", email: "ayesha.khan@gmail.com", phone: "9898989898", note: "Haldi and sangeet on separate days." }, events: [{ day: 1, date: "2026-06-18", location: "Udaipur", services: [] }], addons: [], isConfirmed: false },
-];
-
-const FAKE_INQUIRIES = [
-  { id: 1, name: "Pancholi Pankaj", email: "pancholipankaj255@gmail.com", phone: "9876543210", message: "I want to book photography", createdAt: "2026-05-08" },
-  { id: 2, name: "Abhay Savant", email: "abhaysavant7@gmail.com", phone: "7863854896", message: "Need photography estimate", createdAt: "2026-05-07" },
-  { id: 3, name: "Riya Mehta", email: "riya.mehta@gmail.com", phone: "9825012345", message: "Engagement shoot in Surat with candid and drone coverage.", createdAt: "2026-05-06" },
-  { id: 4, name: "Karan Desai", email: "karan.desai@gmail.com", phone: "9723456789", message: "Corporate event photography quotation required.", createdAt: "2026-05-05" },
-];
-
-const getBookingStatus = (booking) => booking.status || (booking.isConfirmed ? "confirmed" : "pending");
+const getBookingStatus = (booking) => booking.status || "pending";
 
 export default function Dashboard() {
   const { data: summary, isLoading } = useGetDashboardSummary();
+  const { data: apiBookings = [], isLoading: isBookingsLoading, error: bookingsError } = useGetBookings();
+  const { data: apiInquiries = [], isLoading: isInquiriesLoading } = useGetInquiries();
+  const confirmedBookings = apiBookings.filter((booking) => getBookingStatus(booking) === "confirmed").length;
+  const pendingBookings = apiBookings.filter((booking) => getBookingStatus(booking) === "pending").length;
+  const cancelledBookings = apiBookings.filter((booking) => getBookingStatus(booking) === "cancelled").length;
 
   const stats = [
-    { title: "Total Bookings", value: summary?.totalBookings || 6, icon: Calendar, color: "text-primary", bg: "bg-primary/10", change: "+2", trend: "up" },
-    { title: "Confirmed Bookings", value: summary?.confirmedBookings || 3, icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-500/10", change: "+1", trend: "up" },
-    { title: "Enquiries", value: summary?.enquiries || 4, icon: MessageSquare, color: "text-amber-500", bg: "bg-amber-500/10", change: "+2", trend: "up" },
-    { title: "Active Photographers", value: summary?.activePhotographers || 5, icon: Users, color: "text-violet-500", bg: "bg-violet-500/10", change: "5 active", trend: "neutral" },
+    { title: "Total Bookings", value: apiBookings.length, icon: Calendar, color: "text-primary", bg: "bg-primary/10", change: `${pendingBookings} pending`, trend: "neutral" },
+    { title: "Confirmed Bookings", value: confirmedBookings, icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-500/10", change: `${cancelledBookings} cancelled`, trend: "neutral" },
+    { title: "Enquiries", value: apiInquiries.length, icon: MessageSquare, color: "text-amber-500", bg: "bg-amber-500/10", change: "pending follow-ups", trend: "neutral" },
+    { title: "Photographers", value: summary?.photographers ?? 0, icon: Users, color: "text-violet-500", bg: "bg-violet-500/10", change: "active records", trend: "neutral" },
   ];
 
-  const bookings = summary?.recentBookings?.length ? summary.recentBookings : FAKE_BOOKINGS;
-  const inquiries = summary?.recentEnquiries?.length ? summary.recentEnquiries : FAKE_INQUIRIES;
+  const bookings = [...apiBookings].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 5);
+  const inquiries = [...apiInquiries].sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0)).slice(0, 5);
 
   return (
     <div className="space-y-7">
@@ -59,7 +49,7 @@ export default function Dashboard() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{s.title}</p>
-                <p className="text-3xl font-bold text-foreground mt-2">{isLoading ? "-" : s.value}</p>
+                <p className="text-3xl font-bold text-foreground mt-2">{isLoading || isBookingsLoading || isInquiriesLoading ? "-" : s.value}</p>
               </div>
               <div className={`p-2.5 rounded-xl ${s.bg}`}>
                 <s.icon className={`h-5 w-5 ${s.color}`} />
@@ -83,7 +73,7 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="divide-y divide-border">
-            {isLoading ? (
+            {isLoading || isBookingsLoading ? (
               Array(4).fill(0).map((_, i) => (
                 <div key={i} className="px-6 py-4 flex items-center gap-4">
                   <Skeleton className="h-8 w-8 rounded-full" />
@@ -91,6 +81,10 @@ export default function Dashboard() {
                   <Skeleton className="h-5 w-16 rounded-full" />
                 </div>
               ))
+            ) : bookingsError ? (
+              <div className="px-6 py-10 text-center text-sm text-red-500">{bookingsError.message}</div>
+            ) : !bookings.length ? (
+              <div className="px-6 py-10 text-center text-sm text-muted-foreground">No bookings found.</div>
             ) : bookings.map((b) => {
               const customer = b.customer || {};
               const firstEvent = b.events?.[0] || {};
@@ -123,7 +117,11 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="divide-y divide-border">
-            {inquiries.map((inq) => (
+            {isInquiriesLoading ? (
+              Array(3).fill(0).map((_, i) => <div key={i} className="px-5 py-4"><Skeleton className="h-14 w-full" /></div>)
+            ) : !inquiries.length ? (
+              <div className="px-5 py-10 text-center text-sm text-muted-foreground">No enquiries found.</div>
+            ) : inquiries.map((inq) => (
               <div key={inq.id} className="px-5 py-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-2">
                   <div className="flex items-center gap-2">

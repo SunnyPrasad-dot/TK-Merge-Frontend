@@ -1,75 +1,36 @@
 import { useState } from "react";
-import { useGetInquiries } from "@admin/services/api";
+import { useConvertInquiryToBooking, useGetInquiries } from "@admin/services/api";
 import { format } from "date-fns";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { Input } from "@admin/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@admin/components/ui/select";
 import { Mail, Phone, MessageSquare, Calendar, ChevronRight, Clock, Search, SlidersHorizontal } from "lucide-react";
 import { getInitials } from "@shared/utils/admin";
-import { Link } from "react-router-dom";
-
-const FAKE_INQUIRIES = [
-  {
-    id: 1,
-    name: "Pancholi Pankaj",
-    email: "pancholipankaj255@gmail.com",
-    phone: "9876543210",
-    message: "I want to book photography",
-    createdAt: "2026-05-08",
-  },
-  {
-    id: 2,
-    name: "Abhay Savant",
-    email: "abhaysavant7@gmail.com",
-    phone: "7863854896",
-    message: "Need photography estimate",
-    createdAt: "2026-05-07",
-  },
-  {
-    id: 3,
-    name: "Riya Mehta",
-    email: "riya.mehta@gmail.com",
-    phone: "9825012345",
-    message: "Engagement shoot in Surat with candid and drone coverage.",
-    createdAt: "2026-05-06",
-  },
-  {
-    id: 4,
-    name: "Karan Desai",
-    email: "karan.desai@gmail.com",
-    phone: "9723456789",
-    message: "Corporate event photography quotation required for June last week.",
-    createdAt: "2026-05-05",
-  },
-  {
-    id: 5,
-    name: "Ayesha Khan",
-    email: "ayesha.khan@gmail.com",
-    phone: "9898989898",
-    message: "Haldi and sangeet function coverage in Udaipur for two days.",
-    createdAt: "2026-05-04",
-  },
-  {
-    id: 6,
-    name: "Nikhil Shah",
-    email: "nikhil.shah@gmail.com",
-    phone: "9909911223",
-    message: "Reception photography and album pricing details needed.",
-    createdAt: "2026-05-03",
-  },
-];
+import { useToast } from "@shared/hooks/use-toast";
 
 export default function Inquiries() {
-  const { data: apiInquiries, isLoading } = useGetInquiries();
+  const { data: apiInquiries = [], isLoading } = useGetInquiries();
+  const convertInquiry = useConvertInquiryToBooking();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [sort, setSort] = useState("newest");
 
-  const inquiries = apiInquiries?.length ? apiInquiries : FAKE_INQUIRIES;
+  const inquiries = apiInquiries;
 
   const filtered = inquiries.filter((inq) => {
-    const matchSearch = !search || inq.name?.toLowerCase().includes(search.toLowerCase()) || inq.email?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = status === "all" || (status === "new" && inq.status !== "read");
+    const query = search.trim().toLowerCase();
+    const matchSearch = !query ||
+      inq.name?.toLowerCase().includes(query) ||
+      inq.email?.toLowerCase().includes(query) ||
+      inq.phone?.toLowerCase().includes(query) ||
+      inq.message?.toLowerCase().includes(query);
+    const matchStatus = status === "all" || (status === "pending" && inq.status === "pending") || (status === "confirmed" && inq.status === "confirmed");
     return matchSearch && matchStatus;
+  }).sort((a, b) => {
+    if (sort === "oldest") return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+    if (sort === "name") return (a.name || "").localeCompare(b.name || "");
+    return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
   });
 
   return (
@@ -82,7 +43,7 @@ export default function Inquiries() {
       </div>
 
       {/* Filter bar */}
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto] items-center">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto] items-center">
         <div className="relative w-full max-w-full md:max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400 dark:text-muted-foreground/70" />
           <Input
@@ -99,7 +60,18 @@ export default function Inquiries() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Enquiries</SelectItem>
-            <SelectItem value="new">New Only</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="confirmed">Confirmed</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={sort} onValueChange={setSort} className="w-full md:w-44">
+          <SelectTrigger className="h-9 w-full bg-card border-border rounded-xl shadow-sm text-sm dark:bg-card">
+            <SelectValue placeholder="Sort" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="newest">Newest</SelectItem>
+            <SelectItem value="oldest">Oldest</SelectItem>
+            <SelectItem value="name">Name</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -169,11 +141,19 @@ export default function Inquiries() {
                   <Calendar className="h-3.5 w-3.5" />
                   {inq.createdAt ? `Received ${format(new Date(inq.createdAt), "MMMM d, yyyy")}` : "Received"}
                 </div>
-                <Link to="/admin/bookings">
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-white text-xs font-medium transition-all">
-                    Convert To Booking <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
-                </Link>
+                <button
+                  onClick={() => {
+                    if (!window.confirm("Are you sure you want to convert this enquiry to booking?")) return;
+                    convertInquiry.mutate(inq.id, {
+                      onSuccess: () => toast({ title: "Converted", description: "Enquiry converted to booking." }),
+                      onError: (err) => toast({ title: "Conversion failed", description: err.message }),
+                    });
+                  }}
+                  disabled={convertInquiry.isPending}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-white text-xs font-medium transition-all"
+                >
+                  Convert To Booking <ChevronRight className="h-3.5 w-3.5" />
+                </button>
               </div>
             </div>
           ))}

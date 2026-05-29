@@ -36,7 +36,7 @@ export function buildBookingPayload({
       return {
         day: index + 1,
         date: formatBookingDate(event.date),
-        location: event.name || `Event ${index + 1}`,
+        location: event.location || '',
         services: selectedServices,
       }
     })
@@ -53,8 +53,13 @@ export function buildBookingPayload({
     }))
 
   const eventNotes = events
-    .filter((event) => event.name || event.time)
-    .map((event, index) => `Day ${index + 1}: ${event.name || 'Event'}${event.time ? ` at ${event.time}` : ''}`)
+    .filter((event) => event.name || event.time || event.location)
+    .map((event, index) => {
+      const parts = [event.name || 'Event']
+      if (event.time) parts.push(`at ${event.time}`)
+      if (event.location) parts.push(`in ${event.location}`)
+      return `Day ${index + 1}: ${parts.join(' ')}`
+    })
     .join(', ')
 
   return {

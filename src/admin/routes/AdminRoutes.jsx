@@ -14,6 +14,7 @@ import Photographers from "@admin/pages/Photographers";
 import PhotographerDetail from "@admin/pages/PhotographerDetail";
 import PhotographerNew from "@admin/pages/PhotographerNew";
 import Prices from "@admin/pages/Prices";
+import Payments from "@admin/pages/Payments";
 import Profile from "@admin/pages/Profile";
 import Settings from "@admin/pages/Settings";
 import NotFound from "@admin/pages/not-found";
@@ -45,6 +46,7 @@ function AdminRouteTree() {
       <Route path="photographers/:id" element={<ProtectedRoute><PhotographerDetail /></ProtectedRoute>} />
       <Route path="photographers" element={<ProtectedRoute><Photographers /></ProtectedRoute>} />
       <Route path="prices" element={<ProtectedRoute><Prices /></ProtectedRoute>} />
+      <Route path="payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
       <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />

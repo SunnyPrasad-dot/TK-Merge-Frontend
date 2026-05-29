@@ -17,6 +17,7 @@ function createNewEvent() {
   return {
     id: generateId(),
     name: '',
+    location: '',
     date: undefined,
     time: '',
     selectedServices: [],

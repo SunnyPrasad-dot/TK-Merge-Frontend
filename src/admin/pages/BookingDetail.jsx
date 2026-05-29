@@ -5,93 +5,27 @@ import {
   useGetBooking,
   getGetBookingQueryKey,
   useUpdateBooking,
+  useUpdateWorkStatus,
+  useUpdateClientPayment,
+  useGetPhotographers,
   useGetAvailablePhotographers,
-  useAssignPhotographer
+  useAssignPhotographer,
+  useConvertInquiryToBooking
 } from "@admin/services/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@admin/components/ui/dialog";
 import { Button } from "@admin/components/ui/button";
-import { MapPin, Mail, Phone, Calendar, ChevronLeft, CheckCircle, User, Lock, AlertCircle, Camera, Video, Plane, Aperture, Users, ArrowLeft } from "lucide-react";
+import { MapPin, Mail, Phone, Calendar, ChevronLeft, CheckCircle, User, Lock, AlertCircle, Camera, Video, Plane, Aperture, Users, ArrowLeft, Wallet } from "lucide-react";
+import { useToast } from "@shared/hooks/use-toast";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },
   confirmed: { label: "Confirmed", cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" },
+  cancelled: { label: "Cancelled", cls: "bg-red-50 text-red-700 ring-1 ring-red-200" },
 };
-
-const FAKE_BOOKINGS = {
-  1: {
-    id: 1,
-    customer: { name: "Abhay Savant", email: "abhaysavant7@gmail.com", phone: "7863854896", note: "Two day destination wedding coverage." },
-    events: [
-      { day: 1, date: "2026-05-20", location: "Greece", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 1 }] },
-      { day: 2, date: "2026-05-21", location: "Greece", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 1 }, { serviceId: "69fb82d036a42d4eb833a2de", quantity: 1 }] },
-    ],
-    addons: [{ serviceId: "69fb82d036a42d4eb833a2de", quantity: 1 }],
-    assigned: [],
-    isConfirmed: false,
-    totalPrice: 24000,
-  },
-  2: {
-    id: 2,
-    customer: { name: "Pancholi Pankaj", email: "pancholipankaj255@gmail.com", phone: "9876543210", note: "Wedding photography" },
-    events: [{ day: 1, date: "2026-05-25", location: "Ahmedabad", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 2 }] }],
-    addons: [],
-    assigned: [{ day: 1, photographerId: "665f1c2a8f1b2c0012345678", photographerName: "Rahul Patel" }],
-    isConfirmed: true,
-    totalPrice: 18000,
-  },
-  3: {
-    id: 3,
-    customer: { name: "Riya Mehta", email: "riya.mehta@gmail.com", phone: "9825012345", note: "Need candid and drone coverage for engagement." },
-    events: [{ day: 1, date: "2026-06-02", location: "Surat", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 1 }] }],
-    addons: [{ serviceId: "69fb82d036a42d4eb833a2df", quantity: 1 }],
-    assigned: [],
-    isConfirmed: false,
-    totalPrice: 10000,
-  },
-  4: {
-    id: 4,
-    customer: { name: "Nikhil Shah", email: "nikhil.shah@gmail.com", phone: "9909911223", note: "Reception event with album addon." },
-    events: [{ day: 1, date: "2026-06-12", location: "Vadodara", services: [{ serviceId: "69fb82d036a42d4eb833a2e0", quantity: 1 }] }],
-    addons: [{ serviceId: "69fb82d036a42d4eb833a2df", quantity: 2 }],
-    assigned: [{ day: 1, photographerId: "665f1c2a8f1b2c0098765432", photographerName: "Payal Patel" }],
-    isConfirmed: true,
-    totalPrice: 22000,
-  },
-  5: {
-    id: 5,
-    customer: { name: "Ayesha Khan", email: "ayesha.khan@gmail.com", phone: "9898989898", note: "Haldi and sangeet on separate days." },
-    events: [
-      { day: 1, date: "2026-06-18", location: "Udaipur", services: [{ serviceId: "69fb82d036a42d4eb833a2e1", quantity: 1 }] },
-      { day: 2, date: "2026-06-19", location: "Udaipur", services: [{ serviceId: "69fb826f36a42d4eb833a2d5", quantity: 1 }] },
-    ],
-    addons: [],
-    assigned: [{ day: 1, photographerId: "665f1c2a8f1b2c0012345678", photographerName: "Rahul Patel" }],
-    isConfirmed: false,
-    totalPrice: 30000,
-  },
-  6: {
-    id: 6,
-    customer: { name: "Karan Desai", email: "karan.desai@gmail.com", phone: "9723456789", note: "Corporate event photography." },
-    events: [{ day: 1, date: "2026-06-26", location: "Mumbai", services: [{ serviceId: "69fb82d036a42d4eb833a2e2", quantity: 1 }] }],
-    addons: [],
-    assigned: [{ day: 1, photographerId: "665f1c2a8f1b2c0055555555", photographerName: "Neha Verma" }],
-    isConfirmed: true,
-    totalPrice: 15000,
-  },
-};
-
-const FAKE_AVAILABLE = [
-  { id: "665f1c2a8f1b2c0012345678", name: "Rahul Patel", avatar: "https://i.pravatar.cc/300?img=12", email: "rahul@gmail.com", phone: "9876543210", city: "Ahmedabad", role: "candid_photographer", bookedDates: [], isActive: true },
-  { id: "665f1c2a8f1b2c0098765432", name: "Payal Patel", avatar: "https://i.pravatar.cc/300?img=47", email: "payal@gmail.com", phone: "9876543210", city: "Ahmedabad", role: "drone", bookedDates: ["2026-05-25"], isActive: true },
-  { id: "665f1c2a8f1b2c0044444444", name: "Amit Shah", avatar: "https://i.pravatar.cc/300?img=33", email: "amit@gmail.com", phone: "9876543211", city: "Surat", role: "traditional_photographer", bookedDates: ["2026-06-02"], isActive: true },
-  { id: "665f1c2a8f1b2c0055555555", name: "Neha Verma", avatar: "https://i.pravatar.cc/300?img=44", email: "neha@gmail.com", phone: "9876543212", city: "Mumbai", role: "cinematographer", bookedDates: ["2026-06-12", "2026-06-26"], isActive: true },
-  { id: "665f1c2a8f1b2c0066666666", name: "Imran Sheikh", avatar: "https://i.pravatar.cc/300?img=15", email: "imran@gmail.com", phone: "9876543213", city: "Udaipur", role: "traditional_videographer", bookedDates: ["2026-06-18"], isActive: true },
-  { id: "665f1c2a8f1b2c0077777777", name: "Meera Joshi", avatar: "https://i.pravatar.cc/300?img=45", email: "meera@gmail.com", phone: "9876543214", city: "Rajkot", role: "candid_photographer", bookedDates: [], isActive: false },
-];
 
 const ROLE_CONFIG = {
   candid_photographer: { label: "Candid Photographer", icon: Aperture, cls: "bg-cyan-50 text-cyan-700 ring-cyan-200" },
@@ -101,15 +35,117 @@ const ROLE_CONFIG = {
   traditional_videographer: { label: "Traditional Videographer", icon: Users, cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
 };
 
-const getBookingStatus = (booking) => booking.status || (booking.isConfirmed ? "confirmed" : "pending");
+const getBookingStatus = (booking) => booking.status || "pending";
+const formatDateValue = (value, pattern = "MMM d, yyyy") => {
+  if (!value) return "-";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : format(date, pattern);
+};
+const formatDateTimeValue = (value) => formatDateValue(value, "MMM d, yyyy h:mm a");
 const getAssignedPhotographer = (booking, day) => booking.assigned?.find((item) => item.day === day);
+const getAssignedNames = (assigned) => {
+  const photographers = assigned?.photographerIds || assigned?.photographerId || [];
+  const list = Array.isArray(photographers) ? photographers : [photographers];
+  return list.map((photo) => photo?.name || photo?.id || photo?._id || photo).filter(Boolean).join(", ");
+};
 const getRoleLabel = (role) => ROLE_CONFIG[role]?.label || role?.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) || "Photographer";
+const getService = (item) => item?.serviceId || item?.service || item;
+const getServiceName = (item) => {
+  const service = getService(item);
+  return service?.name || service || "Service";
+};
+const getRoleFromServiceName = (name = "") => {
+  const value = String(name).toLowerCase();
+  if (value.includes("drone")) return "drone";
+  if (value.includes("cinema") || value.includes("film")) return "cinematographer";
+  if (value.includes("traditional") && (value.includes("video") || value.includes("videography"))) return "traditional_videographer";
+  if (value.includes("traditional") && (value.includes("photo") || value.includes("photography"))) return "traditional_photographer";
+  if (value.includes("candid") && (value.includes("photo") || value.includes("photography"))) return "candid_photographer";
+  if (value.includes("video") || value.includes("videography")) return "traditional_videographer";
+  if (value.includes("photo") || value.includes("photography")) return "traditional_photographer";
+  return "";
+};
+const getServiceRole = (item) => {
+  const service = getService(item);
+  return (typeof service === "object" ? service.role : "") || getRoleFromServiceName(getServiceName(item));
+};
+const getEventRequiredRoles = (event) => {
+  const roles = event.services?.map(getServiceRole).filter(Boolean) || [];
+  return [...new Set(roles)];
+};
+const getRoleServices = (event, role) => (
+  event.services?.filter((item) => getServiceRole(item) === role).map(getServiceName) || []
+);
+const getEventRoleNeeds = (event) => {
+  const needs = {};
+  event.services?.forEach((item) => {
+    const role = getServiceRole(item);
+    if (!role) return;
+    if (!needs[role]) needs[role] = { role, services: [], count: 0 };
+    needs[role].services.push(getServiceName(item));
+    needs[role].count += 1;
+  });
+  return Object.values(needs);
+};
+const getPhotoId = (photo) => photo?._id || photo?.id || photo;
+const getAssignedPhotoRefs = (booking, day) => {
+  const assigned = getAssignedPhotographer(booking, day);
+  const photographers = assigned?.photographerIds || assigned?.photographerId || [];
+  return Array.isArray(photographers) ? photographers : [photographers];
+};
+const getPhotoRole = (photo, allPhotographers) => {
+  if (photo?.role) return photo.role;
+  const id = getPhotoId(photo);
+  return allPhotographers.find((item) => item.id === id || item._id === id)?.role || "";
+};
+const getAssignedIdsForDay = (booking, day) => getAssignedPhotoRefs(booking, day).map(getPhotoId).filter(Boolean);
+const getAssignedRoleCount = (booking, day, role, allPhotographers) => (
+  getAssignedPhotoRefs(booking, day).filter((photo) => getPhotoRole(photo, allPhotographers) === role).length
+);
+const getServicePrice = (item) => {
+  const service = getService(item);
+  return typeof service === "object" ? service.price || 0 : 0;
+};
+const getServicePriceType = (item) => {
+  const service = getService(item);
+  return typeof service === "object" ? service.priceType : "";
+};
+const getNormalizedAssignments = (assigned = []) => assigned.map((item) => ({
+  day: item.day,
+  photographerIds: item.photographerIds || item.photographerId || [],
+}));
+const getAssignmentPayload = (assigned = []) => assigned.map((item) => ({
+  day: item.day,
+  photographerIds: (Array.isArray(item.photographerIds) ? item.photographerIds : [item.photographerIds]).map(getPhotoId).filter(Boolean),
+}));
+const getMergedAssignments = (current = [], day, photographer) => {
+  const photoId = getPhotoId(photographer);
+  let dayFound = false;
+
+  const assigned = current.map((item) => {
+    if (item.day !== day) {
+      return item;
+    }
+
+    dayFound = true;
+    const photographers = Array.isArray(item.photographerIds) ? item.photographerIds : [item.photographerIds];
+    const exists = photographers.some((photo) => getPhotoId(photo) === photoId);
+    return { day, photographerIds: exists ? photographers : [...photographers, photographer] };
+  });
+
+  if (!dayFound) assigned.push({ day, photographerIds: [photographer] });
+  return assigned;
+};
 
 const getPhotographerConflict = (photo, selectedDay, booking) => {
   if (!photo.isActive) return "Photographer is inactive";
   if (photo.bookedDates?.includes(selectedDay.date)) return "Booked for this event date";
 
-  const assignedEvent = booking.assigned?.find((item) => item.photographerId === photo.id && item.day !== selectedDay.day);
+  const assignedEvent = booking.assigned?.find((item) => {
+    const ids = item.photographerIds || item.photographerId || [];
+    const list = Array.isArray(ids) ? ids : [ids];
+    return item.day !== selectedDay.day && list.some((p) => (p?._id || p?.id || p) === photo.id);
+  });
   if (assignedEvent) return `Already assigned to Day ${assignedEvent.day}`;
 
   return "";
@@ -117,41 +153,34 @@ const getPhotographerConflict = (photo, selectedDay, booking) => {
 
 export default function BookingDetail() {
   const { settings } = useSettings();
+  const { toast } = useToast();
   const params = useParams();
-  const id = parseInt(params.id, 10);
+  const id = params.id;
   const queryClient = useQueryClient();
   const { data: apiBooking, isLoading } = useGetBooking(id, { query: { enabled: !!id } });
   const updateBooking = useUpdateBooking();
+  const updateWorkStatus = useUpdateWorkStatus();
+  const updateClientPayment = useUpdateClientPayment();
   const assignPhotographer = useAssignPhotographer();
+  const convertInquiry = useConvertInquiryToBooking();
+  const { data: allPhotographers = [] } = useGetPhotographers();
 
   const [selectedDay, setSelectedDay] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [assigningPhotographer, setAssigningPhotographer] = useState(null);
+  const [draftAssigned, setDraftAssigned] = useState([]);
+  const [workStatus, setWorkStatus] = useState("");
+  const [paymentForm, setPaymentForm] = useState({ amount: "", transactionId: "", paymentMethod: "upi", note: "" });
 
   const { data: availability, isLoading: isAvailabilityLoading } = useGetAvailablePhotographers(
-    { date: selectedDay?.date },
-    { query: { enabled: !!selectedDay } }
+    { date: selectedDay?.date, role: selectedCategory },
+    { query: { enabled: !!selectedDay && !!selectedCategory } }
   );
 
-  const booking = apiBooking || FAKE_BOOKINGS[id] || FAKE_BOOKINGS[1];
-  const customer = booking.customer || {};
-  const firstEvent = booking.events?.[0] || {};
-  const status = getBookingStatus(booking);
-  const sc = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
-  const availablePhotographers = availability?.available || availability || FAKE_AVAILABLE;
-  const selectedCategoryConfig = selectedCategory ? ROLE_CONFIG[selectedCategory] : null;
-  const categoryStats = selectedDay ? Object.entries(ROLE_CONFIG).map(([role, config]) => {
-    const photographers = availablePhotographers.filter((photo) => photo.role === role);
-    const availableCount = photographers.filter((photo) => !getPhotographerConflict(photo, selectedDay, booking)).length;
-    return {
-      role,
-      ...config,
-      total: photographers.length,
-      available: availableCount,
-      unavailable: photographers.length - availableCount,
-    };
-  }) : [];
-  const categoryPhotographers = selectedCategory ? availablePhotographers.filter((photo) => photo.role === selectedCategory) : [];
+  const booking = apiBooking;
+  useEffect(() => {
+    if (apiBooking) setDraftAssigned(getNormalizedAssignments(apiBooking.assigned || []));
+  }, [apiBooking]);
 
   if (isLoading) {
     return (
@@ -163,38 +192,122 @@ export default function BookingDetail() {
     );
   }
 
+  if (!booking) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-200 bg-card py-16 text-center text-sm text-muted-foreground dark:border-border">
+        Booking not found.
+      </div>
+    );
+  }
+  const customer = booking.customer || {};
+  const firstEvent = booking.events?.[0] || {};
+  const status = getBookingStatus(booking);
+  const sc = STATUS_CONFIG[status] || STATUS_CONFIG.pending;
+  const draftBooking = { ...booking, assigned: draftAssigned };
+  const selectedDayRoles = selectedDay ? getEventRequiredRoles(selectedDay) : [];
+  const selectedDayNeeds = selectedDay ? getEventRoleNeeds(selectedDay) : [];
+  const availablePhotographers = selectedCategory ? (availability || []) : allPhotographers;
+  const selectedCategoryConfig = selectedCategory ? ROLE_CONFIG[selectedCategory] : null;
+  const categoryStats = selectedDay ? Object.entries(ROLE_CONFIG).filter(([role]) => selectedDayRoles.includes(role)).map(([role, config]) => {
+    const need = selectedDayNeeds.find((item) => item.role === role);
+    const assignedCount = getAssignedRoleCount(draftBooking, selectedDay.day, role, allPhotographers);
+    const photographers = availablePhotographers.filter((photo) => photo.role === role);
+    const availableCount = photographers.filter((photo) => !getPhotographerConflict(photo, selectedDay, draftBooking)).length;
+    return {
+      role,
+      ...config,
+      services: need?.services || getRoleServices(selectedDay, role),
+      required: need?.count || 1,
+      assigned: assignedCount,
+      total: photographers.length,
+      available: availableCount,
+      unavailable: photographers.length - availableCount,
+    };
+  }) : [];
+  const categoryPhotographers = selectedCategory ? availablePhotographers.filter((photo) => photo.role === selectedCategory) : [];
+  const requiredPhotographerCount = booking.events?.reduce((sum, event) => (
+    sum + getEventRoleNeeds(event).reduce((total, need) => total + need.count, 0)
+  ), 0) || 0;
+  const selectedPhotographerCount = draftAssigned.reduce((sum, item) => {
+    const ids = Array.isArray(item.photographerIds) ? item.photographerIds : [item.photographerIds];
+    return sum + ids.filter(Boolean).length;
+  }, 0);
+
   const confirmAssignment = () => {
     if (!selectedDay || !assigningPhotographer) return;
-    if (getPhotographerConflict(assigningPhotographer, selectedDay, booking)) return;
+    if (getPhotographerConflict(assigningPhotographer, selectedDay, draftBooking)) return;
+    setDraftAssigned((current) => getMergedAssignments(current, selectedDay.day, assigningPhotographer));
+    toast({ title: "Selected", description: "Photographer added to assignment draft." });
+    setAssigningPhotographer(null);
+  };
+
+  const saveAssignments = () => {
+    if (selectedPhotographerCount < requiredPhotographerCount) {
+      toast({ title: "Assignment incomplete", description: "Select photographers for all services before saving." });
+      return;
+    }
     if (apiBooking) {
       assignPhotographer.mutate(
-        { id, data: { assigned: [{ day: selectedDay.day, photographerId: assigningPhotographer.id }] } },
+        { id, data: { assigned: getAssignmentPayload(draftAssigned) } },
         {
           onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: getGetBookingQueryKey(id) });
-            setAssigningPhotographer(null);
+            queryClient.invalidateQueries({ queryKey: ["admin", "bookings"] });
+            queryClient.invalidateQueries({ queryKey: ["admin", "photographers"] });
+            toast({ title: "Assign done", description: "Photographer assignments saved and mails sent." });
             setSelectedCategory(null);
             setSelectedDay(null);
           },
+          onError: (err) => toast({ title: "Assignment failed", description: err.message }),
         }
       );
-    } else {
-      booking.assigned = [
-        ...(booking.assigned || []).filter((item) => item.day !== selectedDay.day),
-        { day: selectedDay.day, photographerId: assigningPhotographer.id, photographerName: assigningPhotographer.name },
-      ];
-      setAssigningPhotographer(null);
-      setSelectedCategory(null);
-      setSelectedDay(null);
     }
   };
 
   const handleConfirmRequest = () => {
+    if (!window.confirm("Are you sure you want to confirm this booking?")) return;
     if (apiBooking) {
+      if (booking.type === "enquiry") {
+        convertInquiry.mutate(id, {
+          onSuccess: () => {
+            updateBooking.mutate({ id, data: { status: "confirmed" } }, {
+              onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetBookingQueryKey(id) })
+            });
+          }
+        });
+        return;
+      }
       updateBooking.mutate({ id, data: { status: "confirmed" } }, {
         onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetBookingQueryKey(id) })
       });
     }
+  };
+
+  const handleWorkStatusSubmit = (e) => {
+    e.preventDefault();
+    if (!workStatus) return;
+    if (!window.confirm(`Update work status to "${workStatus}"?`)) return;
+    updateWorkStatus.mutate({ id, data: { workStatus } }, {
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: getGetBookingQueryKey(id) })
+    });
+  };
+
+  const handleClientPaymentSubmit = (e) => {
+    e.preventDefault();
+    const amount = Number(paymentForm.amount);
+    if (!amount) return;
+    if (!window.confirm(`Save client payment of ${amount}?`)) return;
+    updateClientPayment.mutate({
+      id,
+      data: {
+        amount,
+        transactionId: paymentForm.transactionId,
+        paymentMethod: paymentForm.paymentMethod,
+        note: paymentForm.note,
+      },
+    }, {
+      onSuccess: () => setPaymentForm({ amount: "", transactionId: "", paymentMethod: "upi", note: "" })
+    });
   };
 
   return (
@@ -210,7 +323,7 @@ export default function BookingDetail() {
               <h1 className="text-xl font-bold text-slate-900 dark:text-foreground">{customer.name}</h1>
               <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${sc.cls}`}>{sc.label}</span>
             </div>
-            <p className="text-sm text-slate-500 dark:text-muted-foreground mt-0.5">Booking #{booking.id}</p>
+            <p className="text-sm text-slate-500 dark:text-muted-foreground mt-0.5">Booking #{booking.bookingId || booking.id}</p>
           </div>
         </div>
         {status !== "confirmed" && (
@@ -227,8 +340,8 @@ export default function BookingDetail() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-5">
               {[
                 { label: "Days", value: `${booking.events?.length || 0}` },
-                { label: "First Date", value: firstEvent.date ? format(new Date(firstEvent.date), "MMMM d, yyyy") : "-" },
-                { label: "Location", value: firstEvent.location || "-", icon: MapPin },
+                { label: "First Date", value: formatDateValue(firstEvent.date, "MMMM d, yyyy") },
+                { label: "First Event / Location", value: firstEvent.location || "-", icon: MapPin },
               ].map(({ label, value, icon: Icon }) => (
                 <div key={label}>
                   <p className="text-xs font-medium text-slate-400 dark:text-muted-foreground/70 uppercase tracking-wide mb-1">{label}</p>
@@ -251,29 +364,45 @@ export default function BookingDetail() {
             <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-4">Events & Photographer Assignment</h3>
             <div className="space-y-3">
               {booking.events?.map((event) => {
-                const assigned = getAssignedPhotographer(booking, event.day);
+                const assigned = getAssignedPhotographer(draftBooking, event.day);
+                const requiredRoles = getEventRequiredRoles(event);
+                const assignedIds = getAssignedIdsForDay(draftBooking, event.day);
                 return (
                   <div key={event.day} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-border">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <div className="h-6 w-6 rounded-full bg-primary/20 flex items-center justify-center text-[11px] font-bold text-primary">{event.day}</div>
-                        <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{format(new Date(event.date), "EEEE, MMM d, yyyy")}</span>
+                        <span className="text-sm font-semibold text-slate-900 dark:text-foreground">{formatDateValue(event.date, "EEEE, MMM d, yyyy")}</span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-muted-foreground ml-8">{event.location}</p>
+                      <div className="ml-8 mt-2 flex flex-wrap gap-1.5">
+                        {requiredRoles.length ? requiredRoles.map((role) => (
+                          <span key={role} className="rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-slate-600 ring-1 ring-slate-200 dark:bg-card dark:text-muted-foreground dark:ring-border">
+                            {getRoleLabel(role)}
+                          </span>
+                        )) : (
+                          <span className="text-[11px] text-amber-600">No service role found</span>
+                        )}
+                      </div>
                       {assigned && (
                         <div className="ml-8 mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                          <User className="h-3 w-3" /> {assigned.photographerName || assigned.photographerId}
+                          <User className="h-3 w-3" /> {assigned.photographerName || getAssignedNames(assigned)}
                         </div>
                       )}
+                      <p className="ml-8 mt-2 text-[11px] text-slate-400 dark:text-muted-foreground/70">
+                        {assignedIds.length}/{event.services?.length || 0} photographers assigned
+                      </p>
                     </div>
                     <button
+                      disabled={!!assigned}
                       onClick={() => {
+                        if (assigned) return;
                         setSelectedCategory(null);
                         setSelectedDay(selectedDay?.day === event.day ? null : event);
                       }}
-                      className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${assigned ? "border border-slate-200 dark:border-border/60 text-slate-600 dark:text-muted-foreground hover:bg-slate-100 dark:bg-slate-800" : "bg-primary text-white hover:bg-primary/90"}`}
+                      className={`shrink-0 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${assigned ? "cursor-not-allowed border border-slate-200 bg-slate-100 text-slate-400 dark:border-border/60 dark:bg-slate-800 dark:text-slate-500" : "bg-primary text-white hover:bg-primary/90"}`}
                     >
-                      {assigned ? "Change" : "Assign Photographer"}
+                      {assigned ? "Assigned" : "Assign Photographer"}
                     </button>
                   </div>
                 );
@@ -288,7 +417,7 @@ export default function BookingDetail() {
                   <h3 className="text-sm font-bold text-slate-900 dark:text-foreground">
                     {selectedCategoryConfig ? `${selectedCategoryConfig.label} - Day ${selectedDay.day}` : `Choose Category - Day ${selectedDay.day}`}
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-muted-foreground mt-0.5">{format(new Date(selectedDay.date), "EEEE, MMMM d, yyyy")}</p>
+                  <p className="text-xs text-slate-500 dark:text-muted-foreground mt-0.5">{formatDateValue(selectedDay.date, "EEEE, MMMM d, yyyy")}</p>
                 </div>
                 <button
                   onClick={() => {
@@ -305,6 +434,12 @@ export default function BookingDetail() {
                   {Array(4).fill(0).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
                 </div>
               ) : !selectedCategory ? (
+                !categoryStats.length ? (
+                  <div className="rounded-xl border border-dashed border-slate-200 dark:border-border py-10 text-center">
+                    <Camera className="h-7 w-7 text-slate-300 dark:text-muted-foreground mx-auto mb-2" />
+                    <p className="text-sm text-slate-500 dark:text-muted-foreground">No role is attached to this day's services.</p>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                   {categoryStats.map((category) => {
                     const Icon = category.icon;
@@ -324,13 +459,19 @@ export default function BookingDetail() {
                           </span>
                         </div>
                         <p className="mt-3 text-sm font-bold text-slate-900 dark:text-foreground">{category.label}</p>
+                        {category.services.length > 0 && (
+                          <p className="mt-1 text-xs text-slate-600 dark:text-muted-foreground">
+                            Needed for {category.services.join(", ")}
+                          </p>
+                        )}
                         <p className="mt-1 text-xs text-slate-500 dark:text-muted-foreground">
-                          {category.total} total, {category.available} available, {category.unavailable} booked/inactive
+                          {category.assigned}/{category.required} assigned, {category.available} available
                         </p>
                       </button>
                     );
                   })}
                 </div>
+                )
               ) : (
                 <div className="space-y-3">
                   <button
@@ -347,11 +488,21 @@ export default function BookingDetail() {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       {categoryPhotographers.map((photo) => {
-                        const conflict = getPhotographerConflict(photo, selectedDay, booking);
-                        const isUnavailable = !!conflict;
+                        const conflict = getPhotographerConflict(photo, selectedDay, draftBooking);
+                        const assignedIds = getAssignedIdsForDay(draftBooking, selectedDay.day);
+                        const isAlreadyAssigned = assignedIds.includes(photo.id || photo._id);
+                        const need = selectedDayNeeds.find((item) => item.role === selectedCategory);
+                        const isRoleFilled = getAssignedRoleCount(draftBooking, selectedDay.day, selectedCategory, allPhotographers) >= (need?.count || 1);
+                        const isUnavailable = !!conflict || isAlreadyAssigned || isRoleFilled;
                         return (
                           <div key={photo.id} className={`flex items-center gap-3 p-3.5 border rounded-xl transition-all ${isUnavailable ? "border-slate-200 dark:border-border/60 bg-slate-50/80 dark:bg-slate-900/40 opacity-60" : "border-slate-200 dark:border-border/60 bg-white dark:bg-card hover:border-primary/20"}`}>
-                            <img src={photo.avatar || `https://i.pravatar.cc/100?u=${photo.id}`} alt={photo.name} className="h-10 w-10 rounded-xl object-cover shrink-0" />
+                            {photo.avatar ? (
+                              <img src={photo.avatar} alt={photo.name} className="h-10 w-10 rounded-xl object-cover shrink-0" />
+                            ) : (
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-xs font-bold text-primary">
+                                {(photo.name || "?").slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
                                 <p className="text-sm font-semibold text-slate-900 dark:text-foreground truncate">{photo.name}</p>
@@ -360,7 +511,7 @@ export default function BookingDetail() {
                               <p className="text-xs text-slate-400 dark:text-muted-foreground/70 truncate">{getRoleLabel(photo.role)} - {photo.city}</p>
                               {isUnavailable && (
                                 <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">
-                                  <AlertCircle className="h-3 w-3 shrink-0" /> {conflict}
+                                  <AlertCircle className="h-3 w-3 shrink-0" /> {isAlreadyAssigned ? "Already assigned to this day" : isRoleFilled ? "Required count selected" : conflict}
                                 </p>
                               )}
                             </div>
@@ -369,7 +520,7 @@ export default function BookingDetail() {
                               disabled={isUnavailable}
                               className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${isUnavailable ? "cursor-not-allowed bg-slate-200 text-slate-500 dark:bg-slate-800 dark:text-slate-500" : "bg-primary hover:bg-primary/90 text-white"}`}
                             >
-                              {isUnavailable ? "Booked" : "Assign"}
+                              {isAlreadyAssigned ? "Assigned" : isRoleFilled ? "Filled" : isUnavailable ? "Booked" : "Assign"}
                             </button>
                           </div>
                         );
@@ -383,6 +534,50 @@ export default function BookingDetail() {
         </div>
 
         <div className="space-y-5">
+          <div className="bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-border shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-4">Booking Data</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-slate-400 dark:text-muted-foreground/70">Type</p>
+                <p className="font-semibold capitalize text-slate-900 dark:text-foreground">{booking.type || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 dark:text-muted-foreground/70">Status</p>
+                <p className="font-semibold capitalize text-slate-900 dark:text-foreground">{booking.status || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 dark:text-muted-foreground/70">Work</p>
+                <p className="font-semibold capitalize text-slate-900 dark:text-foreground">{booking.workStatus?.replaceAll("_", " ") || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 dark:text-muted-foreground/70">Payment</p>
+                <p className="font-semibold capitalize text-slate-900 dark:text-foreground">{booking.payment?.status || "-"}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 dark:text-muted-foreground/70">Created</p>
+                <p className="font-semibold text-slate-900 dark:text-foreground">{formatDateTimeValue(booking.createdAt)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 dark:text-muted-foreground/70">Updated</p>
+                <p className="font-semibold text-slate-900 dark:text-foreground">{formatDateTimeValue(booking.updatedAt)}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-border shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-3">Assignments</h3>
+            <button
+              onClick={saveAssignments}
+              disabled={assignPhotographer.isPending || !requiredPhotographerCount}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
+            >
+              <CheckCircle className="h-4 w-4" /> {assignPhotographer.isPending ? "Saving..." : "Save Assignments"}
+            </button>
+            <p className="mt-2 text-xs text-slate-500 dark:text-muted-foreground">
+              {selectedPhotographerCount}/{requiredPhotographerCount} photographers selected. Save once after all services are covered.
+            </p>
+          </div>
+
           <div className="bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-border shadow-sm p-5">
             <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-4">Customer Information</h3>
             <div className="flex items-center gap-3 mb-4">
@@ -403,7 +598,7 @@ export default function BookingDetail() {
               </a>
               <div className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-muted-foreground">
                 <Calendar className="h-4 w-4 shrink-0 text-slate-400 mt-0.5" />
-                {firstEvent.date ? format(new Date(firstEvent.date), "MMMM d, yyyy") : "-"}
+                {formatDateValue(firstEvent.date, "MMMM d, yyyy")}
               </div>
               <div className="flex items-start gap-2.5 text-sm text-slate-600 dark:text-muted-foreground">
                 <MapPin className="h-4 w-4 shrink-0 text-slate-400 mt-0.5" /> {firstEvent.location || "-"}
@@ -415,9 +610,33 @@ export default function BookingDetail() {
             <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-4">Services</h3>
             <div className="space-y-3">
               {booking.events?.map((event) => (
-                <div key={event.day} className="flex justify-between text-sm">
-                  <span className="text-slate-500 dark:text-muted-foreground">Day {event.day} services</span>
-                  <span className="font-medium text-slate-800 dark:text-foreground">{event.services?.length || 0}</span>
+                <div key={event.day} className="space-y-2 rounded-xl bg-slate-50 p-3 text-sm dark:bg-slate-900/50">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium text-slate-700 dark:text-foreground">Day {event.day}</p>
+                      <p className="text-xs text-slate-500 dark:text-muted-foreground">{formatDateValue(event.date)} | {event.location || "No location saved"}</p>
+                    </div>
+                    <span className="text-xs text-slate-400">{event.services?.length || 0} services</span>
+                  </div>
+                  <div className="space-y-1">
+                    {event.services?.length ? event.services.map((item, index) => {
+                      const role = getServiceRole(item);
+                      return (
+                        <div key={`${event.day}-${index}`} className="rounded-lg bg-white p-2 text-xs text-slate-600 dark:bg-card dark:text-muted-foreground">
+                          <div className="flex items-start justify-between gap-3">
+                            <span className="min-w-0 break-words font-medium">{getServiceName(item)}</span>
+                            {role && <span className="shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500 dark:bg-slate-900 dark:text-muted-foreground">{getRoleLabel(role)}</span>}
+                          </div>
+                          <div className="mt-1 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                            <span>Qty {item.quantity || 1}</span>
+                            <span>{getServicePriceType(item) || "price"} {formatCurrency(getServicePrice(item), settings.currency)}</span>
+                          </div>
+                        </div>
+                      );
+                    }) : (
+                      <p className="text-xs text-slate-400 dark:text-muted-foreground">No services selected</p>
+                    )}
+                  </div>
                 </div>
               ))}
               {booking.addons?.length > 0 && (
@@ -425,8 +644,12 @@ export default function BookingDetail() {
                   <p className="text-sm text-slate-500 dark:text-muted-foreground mb-2">Add-ons</p>
                   <div className="space-y-1">
                     {booking.addons.map((addon, index) => (
-                      <div key={index} className="flex items-center gap-2 text-xs text-slate-600 dark:text-muted-foreground">
-                        <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" /> {addon.serviceId} x {addon.quantity}
+                      <div key={index} className="rounded-lg bg-slate-50 p-2 text-xs text-slate-600 dark:bg-slate-900/50 dark:text-muted-foreground">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="min-w-0 break-words">{addon.serviceId?.name || addon.serviceId}</span>
+                          <span className="shrink-0">x {addon.quantity || 1}</span>
+                        </div>
+                        <p className="mt-1 text-[11px] text-slate-400">{addon.serviceId?.priceType || "price"} {formatCurrency(addon.serviceId?.price || 0, settings.currency)}</p>
                       </div>
                     ))}
                   </div>
@@ -434,10 +657,107 @@ export default function BookingDetail() {
               )}
               <div className="pt-3 mt-3 border-t border-slate-100 dark:border-border flex justify-between items-center">
                 <span className="text-sm font-semibold text-slate-900 dark:text-foreground">Total</span>
-                <span className="text-xl font-bold text-slate-900 dark:text-foreground">{formatCurrency(booking.totalPrice || 0, settings.currency)}</span>
+                <span className="text-xl font-bold text-slate-900 dark:text-foreground">{formatCurrency(booking.estimate || booking.totalPrice || 0, settings.currency)}</span>
               </div>
             </div>
           </div>
+
+          <form onSubmit={handleWorkStatusSubmit} className="bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-border shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-4">Work Status</h3>
+            <div className="space-y-3">
+              <select
+                value={workStatus || booking.workStatus || "pending"}
+                onChange={(e) => setWorkStatus(e.target.value)}
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-border dark:bg-card dark:text-foreground"
+              >
+                <option value="pending">Pending</option>
+                <option value="editing">Editing</option>
+                <option value="edited">Edited</option>
+                <option value="delivery_pending">Delivery pending</option>
+                <option value="delivered">Delivered</option>
+              </select>
+              <button
+                type="submit"
+                disabled={updateWorkStatus.isPending}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary/90 disabled:opacity-60"
+              >
+                <CheckCircle className="h-4 w-4" /> {updateWorkStatus.isPending ? "Updating..." : "Update Work Status"}
+              </button>
+            </div>
+          </form>
+
+          <form onSubmit={handleClientPaymentSubmit} className="bg-white dark:bg-card rounded-2xl border border-slate-100 dark:border-border shadow-sm p-5">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-foreground mb-4">Client Payment</h3>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-slate-400 dark:text-muted-foreground/70">Total</p>
+                <p className="font-semibold text-slate-900 dark:text-foreground">{formatCurrency(booking.payment?.totalAmount || booking.estimate || 0, settings.currency)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 dark:text-muted-foreground/70">Paid</p>
+                <p className="font-semibold text-slate-900 dark:text-foreground">{formatCurrency(booking.payment?.paidAmount || 0, settings.currency)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 dark:text-muted-foreground/70">Remaining</p>
+                <p className="font-semibold text-slate-900 dark:text-foreground">{formatCurrency(booking.payment?.remainingAmount || 0, settings.currency)}</p>
+              </div>
+            </div>
+            {booking.payment?.history?.length > 0 && (
+              <div className="mt-4 border-t border-slate-100 pt-4 dark:border-border">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-400 dark:text-muted-foreground/70">Payment History</p>
+                <div className="space-y-2">
+                  {booking.payment.history.map((item, index) => (
+                    <div key={index} className="rounded-lg bg-slate-50 p-2 text-xs text-slate-600 dark:bg-slate-900/50 dark:text-muted-foreground">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-semibold text-slate-900 dark:text-foreground">{formatCurrency(item.amount || 0, settings.currency)}</span>
+                        <span className="capitalize">{item.paymentMethod || "-"}</span>
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-400">{formatDateTimeValue(item.date)} | {item.transactionId || "No transaction ID"}</p>
+                      {item.note && <p className="mt-1 text-[11px]">{item.note}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="mt-4 space-y-3">
+              <input
+                type="number"
+                value={paymentForm.amount}
+                onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                placeholder="Amount"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-border dark:bg-card dark:text-foreground"
+                required
+              />
+              <input
+                value={paymentForm.transactionId}
+                onChange={(e) => setPaymentForm({ ...paymentForm, transactionId: e.target.value })}
+                placeholder="Transaction ID"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-border dark:bg-card dark:text-foreground"
+              />
+              <select
+                value={paymentForm.paymentMethod}
+                onChange={(e) => setPaymentForm({ ...paymentForm, paymentMethod: e.target.value })}
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-border dark:bg-card dark:text-foreground"
+              >
+                <option value="upi">UPI</option>
+                <option value="cash">Cash</option>
+                <option value="bank">Bank</option>
+              </select>
+              <input
+                value={paymentForm.note}
+                onChange={(e) => setPaymentForm({ ...paymentForm, note: e.target.value })}
+                placeholder="Note"
+                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/30 dark:border-border dark:bg-card dark:text-foreground"
+              />
+              <button
+                type="submit"
+                disabled={updateClientPayment.isPending}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-60"
+              >
+                <Wallet className="h-4 w-4" /> {updateClientPayment.isPending ? "Saving..." : "Save Payment"}
+              </button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -452,7 +772,13 @@ export default function BookingDetail() {
           </DialogHeader>
           {assigningPhotographer && (
             <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-border/60">
-              <img src={assigningPhotographer.avatar || `https://i.pravatar.cc/100?u=${assigningPhotographer.id}`} alt={assigningPhotographer.name} className="h-10 w-10 rounded-xl object-cover" />
+              {assigningPhotographer.avatar ? (
+                <img src={assigningPhotographer.avatar} alt={assigningPhotographer.name} className="h-10 w-10 rounded-xl object-cover" />
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-xs font-bold text-primary">
+                  {(assigningPhotographer.name || "?").slice(0, 2).toUpperCase()}
+                </div>
+              )}
               <div>
                 <p className="font-semibold text-sm text-slate-900 dark:text-foreground">{assigningPhotographer.name}</p>
                 <p className="text-xs text-slate-500 dark:text-muted-foreground">{assigningPhotographer.role} - {assigningPhotographer.city}</p>
