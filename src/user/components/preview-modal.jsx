@@ -27,7 +27,7 @@ export function PreviewModal({
   const [albumSelection, setAlbumSelection] = useState(createAlbumSelection)
   const [isSavingEnquiry, setIsSavingEnquiry] = useState(false)
 
-  const handleDetailsSubmit = async (details) => {
+  const handleDetailsSubmit = (details) => {
     const payload = buildBookingPayload({
       events,
       services,
@@ -42,16 +42,8 @@ export function PreviewModal({
       return
     }
 
-    setIsSavingEnquiry(true)
-    try {
-      await createBooking(payload)
-      setCustomerDetails(details)
-      setStep('total')
-    } catch (error) {
-      alert(error.message || 'Unable to save enquiry')
-    } finally {
-      setIsSavingEnquiry(false)
-    }
+    setCustomerDetails(details)
+    setStep('total')
   }
 
   const handleConfirm = () => {
@@ -72,10 +64,29 @@ export function PreviewModal({
 
   const handleCloseModal = (newOpen) => {
     if (!newOpen) {
+      if (customerDetails) {
+        const payload = buildBookingPayload({
+          events,
+          services,
+          albumSelection,
+          addonServices,
+          customerDetails,
+          isConfirmed: false,
+        })
+
+        if (payload.events.length > 0) {
+          setIsSavingEnquiry(true)
+          createBooking(payload)
+            .catch((error) => {
+              console.error('Unable to save enquiry:', error)
+            })
+            .finally(() => setIsSavingEnquiry(false))
+        }
+      }
+
       setStep('album')
       setCustomerDetails(null)
       setAlbumSelection(createAlbumSelection())
-      setIsSavingEnquiry(false)
     }
     onOpenChange(newOpen)
   }

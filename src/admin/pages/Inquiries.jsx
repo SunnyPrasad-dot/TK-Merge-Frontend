@@ -1,20 +1,23 @@
 import { useState } from "react";
-import { useConvertInquiryToBooking, useGetInquiries } from "@admin/services/api";
+import { useConvertInquiryToBooking, useDeleteInquiry, useGetInquiries } from "@admin/services/api";
 import { format } from "date-fns";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { Input } from "@admin/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@admin/components/ui/select";
-import { Mail, Phone, MessageSquare, Calendar, ChevronRight, Clock, Search, SlidersHorizontal } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@admin/components/ui/dialog";
+import { Mail, Phone, MessageSquare, Calendar, ChevronRight, Clock, Search, SlidersHorizontal, Trash2 } from "lucide-react";
 import { getInitials } from "@shared/utils/admin";
 import { useToast } from "@shared/hooks/use-toast";
 
 export default function Inquiries() {
   const { data: apiInquiries = [], isLoading } = useGetInquiries();
   const convertInquiry = useConvertInquiryToBooking();
+  const deleteInquiry = useDeleteInquiry();
   const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState("newest");
+  const [selectedInquiry, setSelectedInquiry] = useState(null);
 
   const inquiries = apiInquiries;
 
@@ -32,6 +35,20 @@ export default function Inquiries() {
     if (sort === "name") return (a.name || "").localeCompare(b.name || "");
     return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
   });
+
+  const handleDeleteInquiry = (inq) => {
+    if (!window.confirm("Are you sure you want to delete this enquiry?")) return;
+    deleteInquiry.mutate(inq.id, {
+      onSuccess: () => {
+        toast({ title: "Deleted", description: "Enquiry deleted successfully." });
+        if (selectedInquiry?.id === inq.id) setSelectedInquiry(null);
+      },
+      onError: (err) => toast({ title: "Delete failed", description: err.message }),
+    });
+  };
+
+  const getServiceName = (item) => item?.serviceId?.name || item?.serviceId || "Service";
+  const getServiceRole = (item) => item?.serviceId?.role?.replaceAll("_", " ") || "";
 
   return (
     <div className="space-y-6">
@@ -141,24 +158,104 @@ export default function Inquiries() {
                   <Calendar className="h-3.5 w-3.5" />
                   {inq.createdAt ? `Received ${format(new Date(inq.createdAt), "MMMM d, yyyy")}` : "Received"}
                 </div>
-                <button
-                  onClick={() => {
-                    if (!window.confirm("Are you sure you want to convert this enquiry to booking?")) return;
-                    convertInquiry.mutate(inq.id, {
-                      onSuccess: () => toast({ title: "Converted", description: "Enquiry converted to booking." }),
-                      onError: (err) => toast({ title: "Conversion failed", description: err.message }),
-                    });
-                  }}
-                  disabled={convertInquiry.isPending}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-white text-xs font-medium transition-all"
-                >
-                  Convert To Booking <ChevronRight className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    onClick={() => setSelectedInquiry(inq)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-medium text-slate-700 hover:bg-white dark:border-border dark:text-muted-foreground dark:hover:bg-card transition-all"
+                  >
+                    Full Detail
+                  </button>
+                  <button
+                    onClick={() => handleDeleteInquiry(inq)}
+                    disabled={deleteInquiry.isPending}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-200 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-60 transition-all"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" /> Delete
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (!window.confirm("Are you sure you want to convert this enquiry to booking?")) return;
+                      convertInquiry.mutate(inq.id, {
+                        onSuccess: () => toast({ title: "Converted", description: "Enquiry converted to booking." }),
+                        onError: (err) => toast({ title: "Conversion failed", description: err.message }),
+                      });
+                    }}
+                    disabled={convertInquiry.isPending}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 disabled:opacity-60 text-white text-xs font-medium transition-all"
+                  >
+                    Convert To Booking <ChevronRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      <Dialog open={!!selectedInquiry} onOpenChange={(open) => !open && setSelectedInquiry(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto rounded-2xl sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Enquiry Full Detail</DialogTitle>
+            <DialogDescription>
+              {selectedInquiry?.bookingId || selectedInquiry?.id} - {selectedInquiry?.name || "Customer enquiry"}
+            </DialogDescription>
+          </DialogHeader>
+
+          {selectedInquiry && (
+            <div className="space-y-5">
+              <div className="grid gap-3 rounded-xl border border-border bg-slate-50 p-4 text-sm dark:bg-slate-900/40 sm:grid-cols-2">
+                <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{selectedInquiry.customer?.name || selectedInquiry.name}</span></div>
+                <div><span className="text-muted-foreground">Phone:</span> <span className="font-medium">{selectedInquiry.customer?.phone || selectedInquiry.phone || "-"}</span></div>
+                <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{selectedInquiry.customer?.email || selectedInquiry.email || "-"}</span></div>
+                <div><span className="text-muted-foreground">Estimate:</span> <span className="font-medium">{selectedInquiry.estimate ?? "-"}</span></div>
+                <div><span className="text-muted-foreground">Status:</span> <span className="font-medium capitalize">{selectedInquiry.status || "-"}</span></div>
+                <div><span className="text-muted-foreground">Created:</span> <span className="font-medium">{selectedInquiry.createdAt ? format(new Date(selectedInquiry.createdAt), "MMM d, yyyy h:mm a") : "-"}</span></div>
+              </div>
+
+              {selectedInquiry.customer?.note && (
+                <div className="rounded-xl border border-border p-4">
+                  <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Note</p>
+                  <p className="text-sm text-foreground">{selectedInquiry.customer.note}</p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">Events</p>
+                {!selectedInquiry.events?.length ? (
+                  <p className="text-sm text-muted-foreground">No events saved.</p>
+                ) : selectedInquiry.events.map((event) => (
+                  <div key={event.day} className="rounded-xl border border-border p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold">Day {event.day}</p>
+                      <p className="text-xs text-muted-foreground">{event.date || "-"} - {event.location || "No location"}</p>
+                    </div>
+                    <div className="space-y-2">
+                      {event.services?.length ? event.services.map((item, index) => (
+                        <div key={index} className="flex items-center justify-between gap-3 rounded-lg bg-slate-50 px-3 py-2 text-xs dark:bg-slate-900/40">
+                          <span>{getServiceName(item)}</span>
+                          <span className="text-muted-foreground">{getServiceRole(item)} x {item.quantity || 1}</span>
+                        </div>
+                      )) : <p className="text-xs text-muted-foreground">No services selected.</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">Add-ons</p>
+                {!selectedInquiry.addons?.length ? (
+                  <p className="text-sm text-muted-foreground">No add-ons selected.</p>
+                ) : selectedInquiry.addons.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-xs">
+                    <span>{getServiceName(item)}</span>
+                    <span className="text-muted-foreground">x {item.quantity || 1}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { useDeletePhotographer, useGetPhotographer, useUpdatePhotographer } from "@admin/services/api";
+import { useDeletePhotographer, useGetPhotographer, useGetRoleSources, useUpdatePhotographer } from "@admin/services/api";
+import { ADD_NEW_ROLE_VALUE, getRoleLabel, getRoleOptions, normalizeRoleValue } from "@admin/services/roles";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useToast } from "@shared/hooks/use-toast";
 import { MapPin, Mail, Phone, Calendar, ChevronLeft, Edit, Save, Trash2 } from "lucide-react";
 
@@ -17,9 +18,13 @@ export default function PhotographerDetail() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: apiPhotographer, isLoading } = useGetPhotographer(id, { query: { enabled: !!id } });
+  const roleSources = useGetRoleSources();
+  const roleOptions = useMemo(() => getRoleOptions(roleSources), [roleSources.photographers, roleSources.services]);
   const updatePhotographer = useUpdatePhotographer();
   const deletePhotographer = useDeletePhotographer();
   const [isEditing, setIsEditing] = useState(false);
+  const [selectedRole, setSelectedRole] = useState("");
+  const [newRole, setNewRole] = useState("");
 
   const photographer = apiPhotographer;
 
@@ -45,19 +50,27 @@ export default function PhotographerDetail() {
     e.preventDefault();
     if (!window.confirm("Are you sure you want to update this photographer?")) return;
     const form = new FormData(e.currentTarget);
+    const role = (selectedRole || photographer.role) === ADD_NEW_ROLE_VALUE ? normalizeRoleValue(newRole) : (selectedRole || photographer.role);
+    if (!role) {
+      toast({ title: "Role required", description: "Select a role or add a new one." });
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append("name", form.get("name"));
+    payload.append("email", form.get("email"));
+    payload.append("phone", form.get("phone"));
+    payload.append("city", form.get("city"));
+    payload.append("role", role);
+    payload.append("isActive", String(form.get("isActive") === "true"));
+    payload.append("perDayRate", String(Number(form.get("perDayRate") || photographer.perDayRate || 0)));
+
+    const avatar = form.get("avatar");
+    if (avatar instanceof File && avatar.size > 0) payload.append("avatar", avatar);
+
     updatePhotographer.mutate({
       id,
-      data: {
-        name: form.get("name"),
-        avatar: form.get("avatar"),
-        email: form.get("email"),
-        phone: form.get("phone"),
-        city: form.get("city"),
-        role: form.get("role"),
-        bookedDates: photographer.bookedDates || [],
-        isActive: form.get("isActive") === "true",
-        perDayRate: Number(form.get("perDayRate") || photographer.perDayRate || 0),
-      },
+      data: payload,
     }, {
       onSuccess: () => {
         setIsEditing(false);
@@ -96,7 +109,7 @@ export default function PhotographerDetail() {
             )}
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-foreground">{photographer.name}</h1>
-              <p className="text-slate-500 dark:text-muted-foreground mt-0.5">{photographer.role}</p>
+              <p className="text-slate-500 dark:text-muted-foreground mt-0.5">{getRoleLabel(photographer.role)}</p>
               <span className={`mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${sc.cls}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${sc.dot}`} />
                 {sc.label}
@@ -117,17 +130,19 @@ export default function PhotographerDetail() {
       {isEditing && (
         <form onSubmit={handleUpdate} className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-5 shadow-sm md:grid-cols-2">
           <input name="name" defaultValue={photographer.name} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="Name" required />
-          <input name="avatar" defaultValue={photographer.avatar} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="image.jpg" />
+          <input name="avatar" type="file" accept="image/*" className="h-10 rounded-xl border border-border bg-card px-3 text-sm" />
           <input name="email" defaultValue={photographer.email} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="Email" required />
           <input name="phone" defaultValue={photographer.phone} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="Phone" required />
           <input name="city" defaultValue={photographer.city} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="City" required />
-          <select name="role" defaultValue={photographer.role} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
-            <option value="candid_photographer">Candid Photographer</option>
-            <option value="traditional_photographer">Traditional Photographer</option>
-            <option value="traditional_videographer">Traditional Videographer</option>
-            <option value="cinematographer">Cinematographer</option>
-            <option value="drone">Drone</option>
+          <select name="role" value={selectedRole || photographer.role} onChange={(e) => setSelectedRole(e.target.value)} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+            {roleOptions.map((role) => (
+              <option key={role.value} value={role.value}>{role.label}</option>
+            ))}
+            <option value={ADD_NEW_ROLE_VALUE}>Add new role</option>
           </select>
+          {(selectedRole || photographer.role) === ADD_NEW_ROLE_VALUE && (
+            <input value={newRole} onChange={(e) => setNewRole(e.target.value)} className="h-10 rounded-xl border border-border bg-card px-3 text-sm" placeholder="New role" required />
+          )}
           <select name="isActive" defaultValue={String(photographer.isActive)} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
             <option value="true">Active</option>
             <option value="false">Inactive</option>

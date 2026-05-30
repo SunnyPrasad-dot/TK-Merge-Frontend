@@ -39,7 +39,7 @@ function PageTitle() {
 }
 
 export default function Navbar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -94,9 +94,10 @@ export default function Navbar() {
             <DropdownMenuItem onClick={() => navigate("/admin/settings")}>Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => {
-                localStorage.removeItem("admin-user");
-                window.location.reload();
+              onClick={async () => {
+                if (!window.confirm("Are you sure you want to sign out?")) return;
+                await logout();
+                navigate("/admin/login", { replace: true });
               }}
               className="text-red-600"
             >

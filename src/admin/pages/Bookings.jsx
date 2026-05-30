@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSettings } from "@admin/services/SettingsContext";
 import { formatCurrency, getInitials } from "@shared/utils/admin";
-import { useGetBookings } from "@admin/services/api";
+import { useDeleteBooking, useGetBookings } from "@admin/services/api";
 import { Input } from "@admin/components/ui/input";
 import { Button } from "@admin/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@admin/components/ui/select";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { format } from "date-fns";
-import { Search, SlidersHorizontal, ArrowRight, MapPin, Calendar } from "lucide-react";
+import { Search, SlidersHorizontal, ArrowRight, MapPin, Calendar, Trash2 } from "lucide-react";
+import { useToast } from "@shared/hooks/use-toast";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },
@@ -31,10 +32,12 @@ const INITIALS_COLORS = [
 
 export default function Bookings() {
   const { settings } = useSettings();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState("newest");
   const { data: apiBookings = [], isLoading, error } = useGetBookings();
+  const deleteBooking = useDeleteBooking();
 
   const allBookings = apiBookings.filter((booking) => booking.type === "booking" || !booking.type);
   const bookings = allBookings.filter((b) => {
@@ -62,6 +65,18 @@ export default function Bookings() {
     const bookingStatus = getBookingStatus(b);
     statusCounts[bookingStatus] = (statusCounts[bookingStatus] || 0) + 1;
   });
+
+  const handleDeleteBooking = (booking) => {
+    if (booking.type !== "enquiry" && booking.status !== "cancelled") {
+      toast({ title: "Delete not allowed", description: "Only enquiries or cancelled bookings can be deleted." });
+      return;
+    }
+    if (!window.confirm("Are you sure you want to delete this booking?")) return;
+    deleteBooking.mutate(booking.id, {
+      onSuccess: () => toast({ title: "Deleted", description: "Booking deleted successfully." }),
+      onError: (err) => toast({ title: "Delete failed", description: err.message }),
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -153,6 +168,7 @@ export default function Bookings() {
               <th className="text-left px-4 py-3.5 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Location</th>
               <th className="text-center px-4 py-3.5 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider">Status</th>
               <th className="text-right px-6 py-3.5 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider">Amount</th>
+              <th className="text-right px-6 py-3.5 text-xs font-semibold text-slate-500 dark:text-muted-foreground uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50 dark:divide-border/60">
@@ -165,17 +181,18 @@ export default function Bookings() {
                   <td className="px-4 py-4 hidden lg:table-cell"><Skeleton className="h-4 w-32" /></td>
                   <td className="px-4 py-4"><Skeleton className="h-5 w-16 mx-auto rounded-full" /></td>
                   <td className="px-6 py-4"><Skeleton className="h-4 w-12 ml-auto" /></td>
+                  <td className="px-6 py-4"><Skeleton className="h-7 w-14 ml-auto" /></td>
                 </tr>
               ))
             ) : error ? (
               <tr>
-                <td colSpan={6} className="text-center py-14 text-red-500 text-sm">
+                <td colSpan={7} className="text-center py-14 text-red-500 text-sm">
                   {error.message}
                 </td>
               </tr>
             ) : !bookings.length ? (
               <tr>
-                <td colSpan={6} className="text-center py-14 text-slate-400 dark:text-muted-foreground text-sm">
+                <td colSpan={7} className="text-center py-14 text-slate-400 dark:text-muted-foreground text-sm">
                   No bookings match your current filters.
                 </td>
               </tr>
@@ -220,8 +237,15 @@ export default function Bookings() {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-3">
                     <span className="font-semibold text-slate-900 dark:text-foreground">{formatCurrency(b.estimate || b.totalPrice || 0, settings.currency)}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {b.status === "cancelled" && (
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteBooking(b)} disabled={deleteBooking.isPending} className="h-7 w-7 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       <Button asChild variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary">
                         <Link to={`/admin/bookings/${b.id}`}><ArrowRight className="h-3.5 w-3.5" /></Link>
                       </Button>

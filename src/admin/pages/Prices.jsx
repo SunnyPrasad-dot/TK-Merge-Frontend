@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useCreateService, useDeleteService, useGetPackages } from "@admin/services/api";
+import { useMemo, useState } from "react";
+import { useCreateService, useDeleteService, useGetPackages, useGetRoleSources, useUpdateService } from "@admin/services/api";
+import { ADD_NEW_ROLE_VALUE, getRoleLabel, getRoleOptions, normalizeRoleValue } from "@admin/services/roles";
 import { useSettings } from "@admin/services/SettingsContext";
 import { formatCurrency } from "@shared/utils/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@admin/components/ui/card";
@@ -8,19 +9,22 @@ import { Input } from "@admin/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@admin/components/ui/table";
 import { Skeleton } from "@admin/components/ui/skeleton";
 import { useToast } from "@shared/hooks/use-toast";
-import { Plus, Search, Trash2 } from "lucide-react";
+import { Pencil, Plus, Save, Search, Trash2, X } from "lucide-react";
 
-function ServiceRow({ item, onDelete, columns }) {
+function ServiceRow({ item, onDelete, onEdit, columns }) {
   const { settings } = useSettings();
 
   return (
     <TableRow>
       {columns.map((col) => (
         <TableCell key={col.key}>
-          {col.type === "number" ? formatCurrency(item[col.key], settings.currency) : item[col.key] || "-"}
+          {col.type === "number" ? formatCurrency(item[col.key], settings.currency) : col.key === "role" ? getRoleLabel(item.role) : item[col.key] || "-"}
         </TableCell>
       ))}
       <TableCell className="text-right">
+        <Button size="icon" variant="ghost" onClick={() => onEdit(item)} className="h-8 w-8 text-slate-600">
+          <Pencil className="h-4 w-4" />
+        </Button>
         <Button size="icon" variant="ghost" onClick={() => onDelete(item.id)} className="h-8 w-8 text-red-600">
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -31,7 +35,10 @@ function ServiceRow({ item, onDelete, columns }) {
 
 export default function Prices() {
   const { data: apiServices = [], isLoading } = useGetPackages();
+  const roleSources = useGetRoleSources();
+  const roleOptions = useMemo(() => getRoleOptions(roleSources), [roleSources.photographers, roleSources.services]);
   const createService = useCreateService();
+  const updateService = useUpdateService();
   const deleteService = useDeleteService();
   const { toast } = useToast();
   const { settings } = useSettings();
@@ -39,7 +46,8 @@ export default function Prices() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [priceTypeFilter, setPriceTypeFilter] = useState("all");
   const [sort, setSort] = useState("name");
-  const [newService, setNewService] = useState({ name: "", type: "addon", priceType: "per_day", role: "", price: "" });
+  const [newService, setNewService] = useState({ name: "", type: "addon", priceType: "per_day", role: roleOptions[0]?.value || "", newRole: "", price: "" });
+  const [editingService, setEditingService] = useState(null);
 
   const allServices = apiServices;
   const services = allServices.filter((service) => {
@@ -61,16 +69,22 @@ export default function Prices() {
 
   const handleAddNew = (e) => {
     e.preventDefault();
+    const role = newService.role === ADD_NEW_ROLE_VALUE ? normalizeRoleValue(newService.newRole) : newService.role;
+    if (!role) {
+      toast({ title: "Role required", description: "Select a role or add a new one." });
+      return;
+    }
+
     const payload = {
       name: newService.name,
       type: newService.type,
       priceType: newService.priceType,
+      role,
       price: Number(newService.price),
-      ...(newService.type === "shoot" && newService.role ? { role: newService.role } : {}),
     };
     createService.mutate(payload, {
       onSuccess: () => {
-        setNewService({ name: "", type: "addon", priceType: "per_day", role: "", price: "" });
+        setNewService({ name: "", type: "addon", priceType: "per_day", role, newRole: "", price: "" });
         toast({ title: "Service Created", description: "The service has been added." });
       },
       onError: (err) => toast({ title: "Create failed", description: err.message }),
@@ -85,9 +99,52 @@ export default function Prices() {
     });
   };
 
+  const startEditService = (service) => {
+    setEditingService({
+      id: service.id,
+      name: service.name || "",
+      type: service.type || "addon",
+      priceType: service.priceType || "per_day",
+      role: service.role || roleOptions[0]?.value || "",
+      newRole: "",
+      price: service.price ?? "",
+    });
+  };
+
+  const cancelEditService = () => setEditingService(null);
+
+  const handleUpdateService = (e) => {
+    e.preventDefault();
+    if (!editingService) return;
+
+    const role = editingService.role === ADD_NEW_ROLE_VALUE ? normalizeRoleValue(editingService.newRole) : editingService.role;
+    if (!role) {
+      toast({ title: "Role required", description: "Select a role or add a new one." });
+      return;
+    }
+
+    updateService.mutate({
+      id: editingService.id,
+      data: {
+        name: editingService.name,
+        type: editingService.type,
+        role,
+        priceType: editingService.priceType,
+        price: Number(editingService.price),
+      },
+    }, {
+      onSuccess: () => {
+        setEditingService(null);
+        toast({ title: "Service Updated", description: "The service changes have been saved." });
+      },
+      onError: (err) => toast({ title: "Update failed", description: err.message }),
+    });
+  };
+
   const serviceColumns = [
     { key: "name", label: "Name" },
     { key: "type", label: "Type" },
+    { key: "role", label: "Role" },
     { key: "priceType", label: "Price Type" },
     { key: "price", label: "Price", type: "number" },
   ];
@@ -112,19 +169,51 @@ export default function Prices() {
           <option value="fixed">Fixed</option>
           <option value="per_unit">Per unit</option>
         </select>
-        <select value={newService.role} onChange={(e) => setNewService({ ...newService, role: e.target.value })} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
-          <option value="">No role</option>
-          <option value="traditional_photographer">Traditional Photographer</option>
-          <option value="traditional_videographer">Traditional Videographer</option>
-          <option value="candid_photographer">Candid Photographer</option>
-          <option value="cinematographer">Cinematographer</option>
-          <option value="drone">Drone</option>
+        <select value={newService.role} onChange={(e) => setNewService({ ...newService, role: e.target.value })} required className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+          {roleOptions.map((role) => (
+            <option key={role.value} value={role.value}>{role.label}</option>
+          ))}
+          <option value={ADD_NEW_ROLE_VALUE}>Add new role</option>
         </select>
+        {newService.role === ADD_NEW_ROLE_VALUE && (
+          <Input value={newService.newRole} onChange={(e) => setNewService({ ...newService, newRole: e.target.value })} placeholder="semi candid photographer" required />
+        )}
         <Input type="number" value={newService.price} onChange={(e) => setNewService({ ...newService, price: e.target.value })} placeholder="6000" required />
         <Button type="submit" disabled={createService.isPending} className="bg-primary hover:bg-primary/90">
           <Plus className="h-4 w-4" /> Create
         </Button>
       </form>
+
+      {editingService && (
+        <form onSubmit={handleUpdateService} className="grid grid-cols-1 gap-3 rounded-2xl border border-primary/20 bg-card p-4 shadow-sm md:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)_minmax(0,0.9fr)_minmax(0,0.9fr)_minmax(0,0.8fr)_auto_auto]">
+          <Input value={editingService.name} onChange={(e) => setEditingService({ ...editingService, name: e.target.value })} placeholder="Service name" required />
+          <select value={editingService.type} onChange={(e) => setEditingService({ ...editingService, type: e.target.value })} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+            <option value="addon">Addon</option>
+            <option value="shoot">Shoot</option>
+          </select>
+          <select value={editingService.priceType} onChange={(e) => setEditingService({ ...editingService, priceType: e.target.value })} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+            <option value="per_day">Per day</option>
+            <option value="fixed">Fixed</option>
+            <option value="per_unit">Per unit</option>
+          </select>
+          <select value={editingService.role} onChange={(e) => setEditingService({ ...editingService, role: e.target.value })} required className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
+            {roleOptions.map((role) => (
+              <option key={role.value} value={role.value}>{role.label}</option>
+            ))}
+            <option value={ADD_NEW_ROLE_VALUE}>Add new role</option>
+          </select>
+          {editingService.role === ADD_NEW_ROLE_VALUE && (
+            <Input value={editingService.newRole} onChange={(e) => setEditingService({ ...editingService, newRole: e.target.value })} placeholder="semi candid photographer" required />
+          )}
+          <Input type="number" value={editingService.price} onChange={(e) => setEditingService({ ...editingService, price: e.target.value })} placeholder="6000" required />
+          <Button type="submit" disabled={updateService.isPending} className="bg-primary hover:bg-primary/90">
+            <Save className="h-4 w-4" /> {updateService.isPending ? "Saving..." : "Save"}
+          </Button>
+          <Button type="button" variant="outline" onClick={cancelEditService}>
+            <X className="h-4 w-4" /> Cancel
+          </Button>
+        </form>
+      )}
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
         <div className="relative max-w-full sm:max-w-sm">
@@ -174,14 +263,16 @@ export default function Prices() {
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <p className="font-semibold text-foreground text-sm truncate">{service.name}</p>
-                        <p className="text-xs text-muted-foreground">{service.type} • {service.priceType}</p>
+                        <p className="text-xs text-muted-foreground">{service.type} - {getRoleLabel(service.role)} - {service.priceType}</p>
                       </div>
                       <span className="text-sm font-semibold text-foreground">{formatCurrency(service.price, settings.currency)}</span>
                     </div>
                     <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-muted-foreground">
                       <span className="rounded-full bg-slate-50 dark:bg-slate-900/50 px-2 py-1">Type: {service.type}</span>
+                      <span className="rounded-full bg-slate-50 dark:bg-slate-900/50 px-2 py-1">Role: {getRoleLabel(service.role)}</span>
                       <span className="rounded-full bg-slate-50 dark:bg-slate-900/50 px-2 py-1">Price type: {service.priceType}</span>
-                      <button onClick={() => handleDeleteService(service.id)} className="ml-auto rounded-lg px-2 py-1 font-semibold text-red-600 hover:bg-red-50">Delete</button>
+                      <button onClick={() => startEditService(service)} className="ml-auto rounded-lg px-2 py-1 font-semibold text-slate-600 hover:bg-slate-50 dark:hover:bg-slate-900">Edit</button>
+                      <button onClick={() => handleDeleteService(service.id)} className="rounded-lg px-2 py-1 font-semibold text-red-600 hover:bg-red-50">Delete</button>
                     </div>
                   </div>
                 ))}
@@ -202,7 +293,7 @@ export default function Prices() {
                         </TableCell>
                       </TableRow>
                     ) : services.map(service => (
-                      <ServiceRow key={service.id} item={service} columns={serviceColumns} onDelete={handleDeleteService} />
+                      <ServiceRow key={service.id} item={service} columns={serviceColumns} onEdit={startEditService} onDelete={handleDeleteService} />
                     ))}
                   </TableBody>
                 </Table>

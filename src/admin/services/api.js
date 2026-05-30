@@ -94,6 +94,21 @@ export function useUpdateBooking() {
   });
 }
 
+export function useDeleteBooking() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id) => request(`/admin/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin", "bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "inquiries"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      queryClient.invalidateQueries({ queryKey: ["admin", "photographers"] });
+    },
+  });
+}
+
+export const useDeleteInquiry = useDeleteBooking;
+
 export function useUpdateWorkStatus() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -209,7 +224,7 @@ export function useCreatePhotographer() {
   return useMutation({
     mutationFn: (data) => request("/photographers", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "photographers"] }),
   });
@@ -220,13 +235,24 @@ export function useUpdatePhotographer() {
   return useMutation({
     mutationFn: ({ id, data }) => request(`/photographers/${id}`, {
       method: "PATCH",
-      body: JSON.stringify(data),
+      body: data instanceof FormData ? data : JSON.stringify(data),
     }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["admin", "photographers"] });
       queryClient.invalidateQueries({ queryKey: ["admin", "photographer", String(variables.id)] });
     },
   });
+}
+
+export function useGetRoleSources() {
+  const photographersQuery = useGetPhotographers();
+  const servicesQuery = useGetPackages();
+
+  return {
+    photographers: photographersQuery.data || [],
+    services: servicesQuery.data || [],
+    isLoading: photographersQuery.isLoading || servicesQuery.isLoading,
+  };
 }
 
 export function useDeletePhotographer() {
@@ -260,6 +286,17 @@ export function useCreateService() {
   });
 }
 
+export function useUpdateService() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }) => request(`/services/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin", "services"] }),
+  });
+}
+
 export function useDeleteService() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -268,8 +305,8 @@ export function useDeleteService() {
   });
 }
 
-export const useUpdatePackage = useCreateService;
-export const useUpdateAddon = useCreateService;
+export const useUpdatePackage = useUpdateService;
+export const useUpdateAddon = useUpdateService;
 
 export function useGetPayments() {
   return useQuery({
@@ -296,8 +333,13 @@ export function useGetPaymentsByPhotographer(photographerId, options = {}) {
     queryKey: ["admin", "payments", "photographer", photographerId],
     enabled: !!photographerId,
     queryFn: async () => {
-      const data = await request(`/payments/photographer/${photographerId}`);
-      return list(data.payments);
+      try {
+        const data = await request(`/payments/photographer/${photographerId}`);
+        return list(data.payments);
+      } catch (error) {
+        if (/no payment data found/i.test(error.message)) return [];
+        throw error;
+      }
     },
     ...(options.query || {}),
   });
@@ -308,8 +350,13 @@ export function useGetPaymentsByMonth(month, options = {}) {
     queryKey: ["admin", "payments", "month", month],
     enabled: !!month,
     queryFn: async () => {
-      const data = await request(`/payments/month/${month}`);
-      return list(data.payments);
+      try {
+        const data = await request(`/payments/month/${month}`);
+        return list(data.payments);
+      } catch (error) {
+        if (/no payments found/i.test(error.message)) return [];
+        throw error;
+      }
     },
     ...(options.query || {}),
   });

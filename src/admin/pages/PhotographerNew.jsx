@@ -3,28 +3,41 @@ import { Button } from "@admin/components/ui/button";
 import { Input } from "@admin/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@shared/hooks/use-toast";
-import { useCreatePhotographer } from "@admin/services/api";
+import { useCreatePhotographer, useGetRoleSources } from "@admin/services/api";
+import { ADD_NEW_ROLE_VALUE, getRoleOptions, normalizeRoleValue } from "@admin/services/roles";
 import { ArrowLeft, Save } from "lucide-react";
+import { useMemo, useState } from "react";
 
 export default function PhotographerNew() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const createPhotographer = useCreatePhotographer();
+  const roleSources = useGetRoleSources();
+  const roleOptions = useMemo(() => getRoleOptions(roleSources), [roleSources.photographers, roleSources.services]);
+  const [selectedRole, setSelectedRole] = useState(roleOptions[0]?.value || "");
+  const [newRole, setNewRole] = useState("");
+
+  const currentRole = selectedRole === ADD_NEW_ROLE_VALUE ? normalizeRoleValue(newRole) : selectedRole;
 
   const handleSave = (e) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
-    const payload = {
-      name: form.get("name"),
-      avatar: form.get("avatar"),
-      email: form.get("email"),
-      phone: form.get("phone"),
-      city: form.get("city"),
-      role: form.get("role"),
-      bookedDates: [],
-      isActive: true,
-      perDayRate: Number(form.get("perDayRate")),
-    };
+    if (!currentRole) {
+      toast({ title: "Role required", description: "Select a role or add a new one." });
+      return;
+    }
+
+    const payload = new FormData();
+    payload.append("name", form.get("name"));
+    payload.append("email", form.get("email"));
+    payload.append("phone", form.get("phone"));
+    payload.append("city", form.get("city"));
+    payload.append("role", currentRole);
+    payload.append("perDayRate", String(Number(form.get("perDayRate"))));
+
+    const avatar = form.get("avatar");
+    if (avatar instanceof File && avatar.size > 0) payload.append("avatar", avatar);
+
     createPhotographer.mutate(payload, {
       onSuccess: () => {
         toast({ title: "Photographer Created", description: "Successfully added new photographer." });
@@ -73,17 +86,22 @@ export default function PhotographerNew() {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Role</label>
-              <select name="role" required className="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm">
-                <option value="candid_photographer">Candid Photographer</option>
-                <option value="traditional_photographer">Traditional Photographer</option>
-                <option value="traditional_videographer">Traditional Videographer</option>
-                <option value="cinematographer">Cinematographer</option>
-                <option value="drone">Drone</option>
+              <select value={selectedRole} onChange={(e) => setSelectedRole(e.target.value)} required className="h-10 w-full rounded-xl border border-border bg-card px-3 text-sm">
+                {roleOptions.map((role) => (
+                  <option key={role.value} value={role.value}>{role.label}</option>
+                ))}
+                <option value={ADD_NEW_ROLE_VALUE}>Add new role</option>
               </select>
             </div>
+            {selectedRole === ADD_NEW_ROLE_VALUE && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">New Role</label>
+                <Input value={newRole} onChange={(e) => setNewRole(e.target.value)} placeholder="semi candid photographer" required />
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium">Avatar</label>
-              <Input name="avatar" placeholder="image.png" />
+              <Input name="avatar" type="file" accept="image/*" />
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium">Per Day Rate</label>

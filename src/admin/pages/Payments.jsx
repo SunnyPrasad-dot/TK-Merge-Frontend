@@ -17,6 +17,37 @@ import { CreditCard, Search, Wallet } from "lucide-react";
 
 const monthValue = () => new Date().toISOString().slice(0, 7);
 const getPhotographer = (payment) => payment.photographerId || {};
+const getPhotographerId = (photographer) => photographer?._id || photographer?.id || photographer;
+const getBookedMonths = (photographer) => (
+  [...new Set((photographer?.bookedDates || [])
+    .map((date) => String(date).slice(0, 7))
+    .filter((date) => /^\d{4}-\d{2}$/.test(date)))]
+    .sort((a, b) => b.localeCompare(a))
+);
+const getTransactionsText = (payment) => (
+  payment.transactions || []
+).map((item) => [
+  item.transactionId,
+  item.paymentMethod,
+  item.type,
+  item.note,
+  item.amount,
+].filter(Boolean).join(" ")).join(" ");
+const getPaymentSearchText = (payment) => {
+  const photographer = getPhotographer(payment);
+  return [
+    photographer.name,
+    photographer.email,
+    photographer.phone,
+    payment.month,
+    payment.status,
+    payment.note,
+    payment.totalAmount,
+    payment.advancePaid,
+    payment.remainingAmount,
+    getTransactionsText(payment),
+  ].filter(Boolean).join(" ").toLowerCase();
+};
 
 export default function Payments() {
   const { settings } = useSettings();
@@ -41,6 +72,10 @@ export default function Payments() {
   const { data: photographerPayments = [], isLoading: isPhotographerLoading } = useGetPaymentsByPhotographer(photographerId, { query: { enabled: mode === "photographer" && !!photographerId, retry: false } });
   const { data: photographers = [] } = useGetPhotographers();
   const updatePayment = useUpdatePhotographerPayment();
+  const selectedPaymentPhotographer = photographers.find((p) => getPhotographerId(p) === form.photographerId);
+  const selectedFilterPhotographer = photographers.find((p) => getPhotographerId(p) === photographerId);
+  const paymentMonths = getBookedMonths(selectedPaymentPhotographer);
+  const filterMonths = getBookedMonths(selectedFilterPhotographer);
 
   const payments = useMemo(() => {
     const source = mode === "unpaid"
@@ -52,12 +87,8 @@ export default function Payments() {
           : allPayments;
     const query = search.trim().toLowerCase();
     return source.filter((payment) => {
-      const photographer = getPhotographer(payment);
-      return !query ||
-        photographer.name?.toLowerCase().includes(query) ||
-        photographer.email?.toLowerCase().includes(query) ||
-        payment.month?.toLowerCase().includes(query) ||
-        payment.status?.toLowerCase().includes(query);
+      if (!query) return true;
+      return getPaymentSearchText(payment).includes(query);
     }).sort((a, b) => {
       if (sort === "oldest") return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
       if (sort === "month") return (b.month || "").localeCompare(a.month || "");
@@ -71,6 +102,10 @@ export default function Payments() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!/^\d{4}-\d{2}$/.test(form.month)) {
+      toast({ title: "Invalid month", description: "Month format must be YYYY-MM." });
+      return;
+    }
     if (!window.confirm(`Update photographer payment for ${form.month}?`)) return;
     updatePayment.mutate({
       photographerId: form.photographerId,
@@ -102,7 +137,18 @@ export default function Payments() {
           <option value="">Photographer</option>
           {photographers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <Input type="month" value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })} required />
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:col-span-2">
+          <Input type="month" value={form.month} onChange={(e) => setForm({ ...form, month: e.target.value })} required />
+          <select
+            value=""
+            onChange={(e) => e.target.value && setForm({ ...form, month: e.target.value })}
+            className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+            disabled={!paymentMonths.length}
+          >
+            <option value="">{paymentMonths.length ? "Booked months" : "No booked months"}</option>
+            {paymentMonths.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+        </div>
         <Input type="number" value={form.amountPaid} onChange={(e) => setForm({ ...form, amountPaid: e.target.value })} placeholder="9000" required />
         <Input value={form.transactionId} onChange={(e) => setForm({ ...form, transactionId: e.target.value })} placeholder="TXN123458" />
         <select value={form.paymentMethod} onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
@@ -134,9 +180,17 @@ export default function Payments() {
             <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
             <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search payments..." className="pl-9" />
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
-            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="pl-9" />
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <Input type="month" value={month} onChange={(e) => setMonth(e.target.value)} />
+            <select
+              value=""
+              onChange={(e) => e.target.value && setMonth(e.target.value)}
+              className="h-10 rounded-xl border border-border bg-card px-3 text-sm"
+              disabled={!filterMonths.length}
+            >
+              <option value="">{filterMonths.length ? "Booked months" : "Months"}</option>
+              {filterMonths.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
           </div>
           <select value={photographerId} onChange={(e) => setPhotographerId(e.target.value)} className="h-10 rounded-xl border border-border bg-card px-3 text-sm">
             <option value="">Select photographer</option>

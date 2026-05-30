@@ -1,24 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useGetPhotographers } from "@admin/services/api";
+import { getRoleConfig, getRoleLabel } from "@admin/services/roles";
 import { Input } from "@admin/components/ui/input";
 import { Skeleton } from "@admin/components/ui/skeleton";
-import { Search, Plus, MapPin, Camera, Phone, Mail, Video, Plane, Aperture, Users } from "lucide-react";
+import { Search, Plus, MapPin, Camera, Phone, Mail } from "lucide-react";
 
 const STATUS_CONFIG = {
   active: { label: "Active", cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", dot: "bg-emerald-500" },
   inactive: { label: "Inactive", cls: "bg-red-50 text-red-700 ring-1 ring-red-200", dot: "bg-red-500" },
 };
-
-const ROLE_CONFIG = {
-  candid_photographer: { label: "Candid Photographer", icon: Aperture, cls: "bg-cyan-50 text-cyan-700 ring-cyan-200" },
-  drone: { label: "Drone Photographer", icon: Plane, cls: "bg-sky-50 text-sky-700 ring-sky-200" },
-  traditional_photographer: { label: "Traditional Photographer", icon: Camera, cls: "bg-amber-50 text-amber-700 ring-amber-200" },
-  cinematographer: { label: "Cinematographer", icon: Video, cls: "bg-violet-50 text-violet-700 ring-violet-200" },
-  traditional_videographer: { label: "Traditional Videographer", icon: Users, cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
-};
-
-const getRoleLabel = (role) => ROLE_CONFIG[role]?.label || role?.replaceAll("_", " ") || "Photographer";
 
 export default function Photographers() {
   const [search, setSearch] = useState("");
@@ -29,7 +20,8 @@ export default function Photographers() {
   const { data: apiPhotographers = [], isLoading } = useGetPhotographers();
 
   const base = apiPhotographers;
-  const categoryStats = Object.entries(ROLE_CONFIG).map(([role, config]) => {
+  const categoryStats = [...new Set(base.map((p) => p.role).filter(Boolean))].sort((a, b) => getRoleLabel(a).localeCompare(getRoleLabel(b))).map((role) => {
+    const config = getRoleConfig(role);
     const rolePhotographers = base.filter((p) => p.role === role);
     const available = rolePhotographers.filter((p) => p.isActive).length;
     return { role, ...config, total: rolePhotographers.length, available };

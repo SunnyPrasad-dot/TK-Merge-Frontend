@@ -72,15 +72,17 @@ export function getAlbumLineItems(albumSelection, addonServices = ALBUM_ADDONS) 
       serviceId: addon.backendId || addon.id,
       name: addon.name,
       price: addon.price || addon.pricePerDay || 0,
+      quantity: addon.quantity || 1,
       priceType: addon.priceType,
     })
   )
 
   const editedPhotos = Number(albumSelection.editedPhotos) || 0
   if (editedPhotos > 0) {
-    const editedPhotoService = addonServices.find((addon) =>
-      addon.name?.toLowerCase().includes('edited photo')
-    )
+    const editedPhotoService = addonServices.find((addon) => {
+      const name = addon.name?.toLowerCase() || ''
+      return name.includes('edited photo') || (name.includes('edit') && name.includes('photo'))
+    })
 
     selectedAddons.push({
       id: 'editedPhotos',

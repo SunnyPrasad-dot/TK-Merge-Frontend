@@ -10,29 +10,23 @@ import {
   useGetPhotographers,
   useGetAvailablePhotographers,
   useAssignPhotographer,
-  useConvertInquiryToBooking
+  useConvertInquiryToBooking,
+  useDeleteBooking
 } from "@admin/services/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { Skeleton } from "@admin/components/ui/skeleton";
+import { getRoleConfig, getRoleLabel } from "@admin/services/roles";
 import { format } from "date-fns";
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@admin/components/ui/dialog";
 import { Button } from "@admin/components/ui/button";
-import { MapPin, Mail, Phone, Calendar, ChevronLeft, CheckCircle, User, Lock, AlertCircle, Camera, Video, Plane, Aperture, Users, ArrowLeft, Wallet } from "lucide-react";
+import { MapPin, Mail, Phone, Calendar, ChevronLeft, CheckCircle, User, Lock, AlertCircle, Trash2, Wallet , ArrowLeft} from "lucide-react";
 import { useToast } from "@shared/hooks/use-toast";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", cls: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },
   confirmed: { label: "Confirmed", cls: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" },
   cancelled: { label: "Cancelled", cls: "bg-red-50 text-red-700 ring-1 ring-red-200" },
-};
-
-const ROLE_CONFIG = {
-  candid_photographer: { label: "Candid Photographer", icon: Aperture, cls: "bg-cyan-50 text-cyan-700 ring-cyan-200" },
-  drone: { label: "Drone Photographer", icon: Plane, cls: "bg-sky-50 text-sky-700 ring-sky-200" },
-  traditional_photographer: { label: "Traditional Photographer", icon: Camera, cls: "bg-amber-50 text-amber-700 ring-amber-200" },
-  cinematographer: { label: "Cinematographer", icon: Video, cls: "bg-violet-50 text-violet-700 ring-violet-200" },
-  traditional_videographer: { label: "Traditional Videographer", icon: Users, cls: "bg-emerald-50 text-emerald-700 ring-emerald-200" },
 };
 
 const getBookingStatus = (booking) => booking.status || "pending";
@@ -48,7 +42,6 @@ const getAssignedNames = (assigned) => {
   const list = Array.isArray(photographers) ? photographers : [photographers];
   return list.map((photo) => photo?.name || photo?.id || photo?._id || photo).filter(Boolean).join(", ");
 };
-const getRoleLabel = (role) => ROLE_CONFIG[role]?.label || role?.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) || "Photographer";
 const getService = (item) => item?.serviceId || item?.service || item;
 const getServiceName = (item) => {
   const service = getService(item);
@@ -141,13 +134,6 @@ const getPhotographerConflict = (photo, selectedDay, booking) => {
   if (!photo.isActive) return "Photographer is inactive";
   if (photo.bookedDates?.includes(selectedDay.date)) return "Booked for this event date";
 
-  const assignedEvent = booking.assigned?.find((item) => {
-    const ids = item.photographerIds || item.photographerId || [];
-    const list = Array.isArray(ids) ? ids : [ids];
-    return item.day !== selectedDay.day && list.some((p) => (p?._id || p?.id || p) === photo.id);
-  });
-  if (assignedEvent) return `Already assigned to Day ${assignedEvent.day}`;
-
   return "";
 };
 
@@ -163,6 +149,7 @@ export default function BookingDetail() {
   const updateClientPayment = useUpdateClientPayment();
   const assignPhotographer = useAssignPhotographer();
   const convertInquiry = useConvertInquiryToBooking();
+  const deleteBooking = useDeleteBooking();
   const { data: allPhotographers = [] } = useGetPhotographers();
 
   const [selectedDay, setSelectedDay] = useState(null);
@@ -207,8 +194,9 @@ export default function BookingDetail() {
   const selectedDayRoles = selectedDay ? getEventRequiredRoles(selectedDay) : [];
   const selectedDayNeeds = selectedDay ? getEventRoleNeeds(selectedDay) : [];
   const availablePhotographers = selectedCategory ? (availability || []) : allPhotographers;
-  const selectedCategoryConfig = selectedCategory ? ROLE_CONFIG[selectedCategory] : null;
-  const categoryStats = selectedDay ? Object.entries(ROLE_CONFIG).filter(([role]) => selectedDayRoles.includes(role)).map(([role, config]) => {
+  const selectedCategoryConfig = selectedCategory ? getRoleConfig(selectedCategory) : null;
+  const categoryStats = selectedDay ? selectedDayRoles.map((role) => {
+    const config = getRoleConfig(role);
     const need = selectedDayNeeds.find((item) => item.role === role);
     const assignedCount = getAssignedRoleCount(draftBooking, selectedDay.day, role, allPhotographers);
     const photographers = availablePhotographers.filter((photo) => photo.role === role);
@@ -283,6 +271,21 @@ export default function BookingDetail() {
     }
   };
 
+  const handleDeleteBooking = () => {
+    if (booking.type !== "enquiry" && booking.status !== "cancelled") {
+      toast({ title: "Delete not allowed", description: "Only enquiries or cancelled bookings can be deleted." });
+      return;
+    }
+    if (!window.confirm("Are you sure you want to delete this record?")) return;
+    deleteBooking.mutate(id, {
+      onSuccess: () => {
+        toast({ title: "Deleted", description: "Booking record deleted successfully." });
+        window.location.href = booking.type === "enquiry" ? "/admin/inquiries" : "/admin/bookings";
+      },
+      onError: (err) => toast({ title: "Delete failed", description: err.message }),
+    });
+  };
+
   const handleWorkStatusSubmit = (e) => {
     e.preventDefault();
     if (!workStatus) return;
@@ -326,11 +329,18 @@ export default function BookingDetail() {
             <p className="text-sm text-slate-500 dark:text-muted-foreground mt-0.5">Booking #{booking.bookingId || booking.id}</p>
           </div>
         </div>
-        {status !== "confirmed" && (
-          <button onClick={handleConfirmRequest} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-all shadow-sm">
-            <CheckCircle className="h-4 w-4" /> Confirm Request
-          </button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {status !== "confirmed" && (
+            <button onClick={handleConfirmRequest} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold transition-all shadow-sm">
+              <CheckCircle className="h-4 w-4" /> Confirm Request
+            </button>
+          )}
+          {(booking.type === "enquiry" || booking.status === "cancelled") && (
+            <button onClick={handleDeleteBooking} disabled={deleteBooking.isPending} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-red-200 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-60 transition-all">
+              <Trash2 className="h-4 w-4" /> {deleteBooking.isPending ? "Deleting..." : "Delete"}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
